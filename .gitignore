@@ -1,5 +1,24 @@
-.venv/
+# Python
 __pycache__/
-*.pyc
-data/
-.env
+*.py[cod]
+*$py.class
+venv/
+.venv/
+env/
+
+# Databases (We want the Droplet to create its own)
+data/*.db
+data/*.db-journal
+
+# IDEs
+.idea/
+.vscode/
+.cursor/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Docker
+.docker/

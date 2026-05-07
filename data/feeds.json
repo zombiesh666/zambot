@@ -1,0 +1,9 @@
+{
+    "feeds": [
+        {
+            "name": "The Crossover",
+            "url": "https://api.bondsports.co/v4/facilities/423/programs-schedule?startDate={start}&endDate={end}",
+            "parser_type": "crossover"
+        }
+    ]
+}
