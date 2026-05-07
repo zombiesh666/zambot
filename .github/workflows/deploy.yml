@@ -3,6 +3,7 @@ name: Deploy Zambot to Production
 on:
   push:
     branches:
+        # This ensures the deploy only happens when you merge to main
       - main
 
 jobs:
@@ -18,19 +19,21 @@ jobs:
           host: ${{ secrets.HOST }}
           username: ${{ secrets.USERNAME }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
+          # The port is usually 22 by default, but we'll be explicit
+          port: 22
           script: |
             cd ~/zambot
-            # Update code
+            # 1. Update the code from GitHub
             git pull origin main
             
-            # Rebuild image
+            # 2. Rebuild the Docker image with the new code
             docker build -t zambot-backend .
             
-            # Stop and remove existing container if it exists
+            # 3. Stop and remove the old container
             docker stop zambot-app || true
             docker rm zambot-app || true
             
-            # Run new container
+            # 4. Run the new container with the data volume attached
             docker run -d \
               --name zambot-app \
               -p 8000:8000 \
