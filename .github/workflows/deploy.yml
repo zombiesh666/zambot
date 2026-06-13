@@ -1,7 +1,7 @@
 name: Deploy Zambot to Production
 
 on:
-  push:
+  pull_request:
     branches:
         # This ensures the deploy only happens when you merge to main
       - main
