@@ -1,0 +1,11 @@
+version: '3.8'
+
+services:
+  zambot-app:
+    build: .
+    container_name: zambot-app
+    ports:
+      - "8000:8000"
+    volumes:
+      - ~/zambot/data:/app/data
+    restart: always

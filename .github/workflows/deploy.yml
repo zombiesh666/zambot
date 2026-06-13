@@ -1,42 +1,33 @@
-name: Deploy Zambot to Production
+name: Deploy Zambot App
 
+# 🚀 The Golden Fix: Only run AFTER code successfully hits the main branch (e.g. Merging a PR)
 on:
-  pull_request:
-    branches:
-        # This ensures the deploy only happens when you merge to main
-      - main
+  push:
+    branches: [ "main" ]
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
 
-      - name: Deploy to DigitalOcean via SSH
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.HOST }}
-          username: ${{ secrets.USERNAME }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          # The port is usually 22 by default, but we'll be explicit
-          port: 22
-          script: |
-            cd ~/zambot
-            # 1. Update the code from GitHub
-            git pull origin main
-            
-            # 2. Rebuild the Docker image with the new code
-            docker build -t zambot-backend .
-            
-            # 3. Stop and remove the old container
-            docker stop zambot-app || true
-            docker rm zambot-app || true
-            
-            # 4. Run the new container with the data volume attached
-            docker run -d \
-              --name zambot-app \
-              -p 8000:8000 \
-              -v "$(pwd)/data:/app/data" \
-              --restart unless-stopped \
-              zambot-backend
+    steps:
+    - name: Deploy to DigitalOcean Droplet via SSH
+      uses: appleboy/ssh-action@master
+      with:
+        host: ${{ secrets.HOST }}
+        username: ${{ secrets.USERNAME }}
+        key: ${{ secrets.SSH_PRIVATE_KEY }}
+        script: |
+          # Navigate into your production directory
+          cd ~/zambot
+          
+          # 1. Temporarily override the remote URL to authenticate seamlessly
+          git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git
+          
+          # 2. Fetch the absolute latest changes from GitHub (which now includes your merged PR)
+          git fetch origin
+          
+          # 3. Force the local files to match main exactly
+          git reset --hard origin/main
+          
+          # 4. Force Docker Compose to build the container locally from the fresh files
+          docker compose up -d --build --force-recreate
