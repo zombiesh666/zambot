@@ -13,9 +13,9 @@ jobs:
     - name: Deploy to DigitalOcean Droplet via SSH
       uses: appleboy/ssh-action@master
       with:
-        host: ${{ secrets.DROPLET_HOST }}
-        username: root
-        key: ${{ secrets.DROPLET_SSH_KEY }}
+        host: ${{ secrets.HOST }}
+        username: ${{ secrets.USERNAME }}
+        key: ${{ secrets.SSH_PRIVATE_KEY }}
         script: |
           # 1. Navigate into your production directory
           cd ~/zambot
