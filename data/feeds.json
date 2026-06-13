@@ -1,11 +1,3 @@
 {
-  "feeds": [
-    {
-      "facility_id": "1",
-      "parser_type": "iceandfield",
-      "info_url": "https://api.daysmartrecreation.com/v1/facilities/1?cache[save]=false&company=iceandfield",
-      "event_types_url": "https://api.daysmartrecreation.com/v1/event-types?cache[save]=false&fields[event-type]=name%2Cid&page[size]=100&sort=name&filter[facilities.id]=1&filter[active]=true&company=iceandfield",
-      "events_base_url": "https://api.daysmartrecreation.com/v1/events"
-    }
-  ]
+  "iceandfield_feed": "https://api.daysmartrecreation.com/v1/events"
 }

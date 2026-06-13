@@ -3,69 +3,59 @@ from src.storage.base_storage import BaseStorage
 
 
 class IceAndFieldStorage(BaseStorage):
-
     def _init_tables(self):
+        """
+        Creates your single, denormalized flat data table if it doesn't exist.
+        """
         with self._get_connection() as conn:
-            # 1. Facilities Table (Prefix applied)
             conn.execute("""
-                CREATE TABLE IF NOT EXISTS iceandfield_facilities (
+                CREATE TABLE IF NOT EXISTS iceandfield (
                     id TEXT PRIMARY KEY,
                     name TEXT,
-                    phone TEXT,
-                    email TEXT,
-                    timezone TEXT
-                )
-            """)
-
-            # 2. Event Types Table (Prefix applied)
-            conn.execute("""
-                CREATE TABLE IF NOT EXISTS iceandfield_event_types (
-                    id TEXT PRIMARY KEY,
-                    code TEXT,
-                    name TEXT
-                )
-            """)
-
-            # 3. Aggregated Sessions Table (Prefix applied)
-            conn.execute("""
-                CREATE TABLE IF NOT EXISTS iceandfield_sessions (
-                    id TEXT PRIMARY KEY,
-                    facility_id TEXT,
-                    rink_name TEXT,
-                    event_type_id TEXT,
-                    session_name TEXT,
-                    session_date TEXT,
-                    session_start_time TEXT,
-                    session_end_time TEXT,
+                    start_time TEXT,
+                    end_time TEXT,
                     open_slots INTEGER,
-                    status TEXT,
-                    FOREIGN KEY(facility_id) REFERENCES iceandfield_facilities(id),
-                    FOREIGN KEY(event_type_id) REFERENCES iceandfield_event_types(id)
-                )
+                    registration_status TEXT,
+                    event_type_id TEXT,
+                    event_type_code TEXT,
+                    event_type_name TEXT,
+                    summary_id TEXT,
+                    summary_name TEXT,
+                    facility_id TEXT,
+                    facility_name TEXT,
+                    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                );
             """)
 
-    def save_facility_info(self, facility_data: dict):
-        with self._get_connection() as conn:
-            conn.execute("""
-                INSERT OR REPLACE INTO iceandfield_facilities (id, name, phone, email, timezone)
-                VALUES (:id, :name, :phone, :email, :timezone)
-            """, facility_data)
+    def save_flat_records(self, flat_records: list[dict]):
+        """
+        Performs high-speed batch synchronization into your flat table.
+        """
+        if not flat_records:
+            print("📭 Storage received empty dataset slice. Skipping write transactions.")
+            return
 
-    def save_event_types(self, event_types: list[dict]):
+        # Unpack flat dictionaries into database row positional tuples
+        data_tuples = [
+            (
+                r["id"], r["name"], r["start_time"], r["end_time"], r["open_slots"],
+                r["registration_status"], r["event_type_id"], r["event_type_code"],
+                r["event_type_name"], r["summary_id"], r["summary_name"],
+                r["facility_id"], r["facility_name"]
+            )
+            for r in flat_records
+        ]
+
+        print(f"💾 Synchronizing {len(data_tuples)} records into local SQLite storage...")
+
+        # Bulk write everything inside a single transactional block
         with self._get_connection() as conn:
             conn.executemany("""
-                INSERT OR REPLACE INTO iceandfield_event_types (id, code, name)
-                VALUES (:id, :code, :name)
-            """, event_types)
+                INSERT OR REPLACE INTO iceandfield (
+                    id, name, start_time, end_time, open_slots, registration_status,
+                    event_type_id, event_type_code, event_type_name,
+                    summary_id, summary_name, facility_id, facility_name, updated_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+            """, data_tuples)
 
-    def save_sessions(self, sessions: list[dict]):
-        with self._get_connection() as conn:
-            conn.executemany("""
-                INSERT OR REPLACE INTO iceandfield_sessions (
-                    id, facility_id, rink_name, event_type_id, session_name,
-                    session_date, session_start_time, session_end_time, open_slots, status
-                ) VALUES (
-                    :id, :facility_id, :rink_name, :event_type_id, :session_name,
-                    :session_date, :session_start_time, :session_end_time, :open_slots, :status
-                )
-            """, sessions)
+        print("✅ Database synchronization transaction successfully committed.")
