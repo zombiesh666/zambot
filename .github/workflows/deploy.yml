@@ -1,42 +1,30 @@
-name: Deploy Zambot to Production
+name: Deploy Zambot App
 
 on:
   pull_request:
-    branches:
-        # This ensures the deploy only happens when you merge to main
-      - main
+    branches: [ "main" ]
+    types: [ opened, synchronize, reopened ]
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
 
-      - name: Deploy to DigitalOcean via SSH
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.HOST }}
-          username: ${{ secrets.USERNAME }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          # The port is usually 22 by default, but we'll be explicit
-          port: 22
-          script: |
-            cd ~/zambot
-            # 1. Update the code from GitHub
-            git pull origin main
-            
-            # 2. Rebuild the Docker image with the new code
-            docker build -t zambot-backend .
-            
-            # 3. Stop and remove the old container
-            docker stop zambot-app || true
-            docker rm zambot-app || true
-            
-            # 4. Run the new container with the data volume attached
-            docker run -d \
-              --name zambot-app \
-              -p 8000:8000 \
-              -v "$(pwd)/data:/app/data" \
-              --restart unless-stopped \
-              zambot-backend
+    steps:
+    - name: Deploy to DigitalOcean Droplet via SSH
+      uses: appleboy/ssh-action@master
+      with:
+        host: ${{ secrets.DROPLET_HOST }}
+        username: root
+        key: ${{ secrets.DROPLET_SSH_KEY }}
+        script: |
+          # 1. Navigate into your production directory
+          cd ~/zambot
+          
+          # 2. Fetch the latest code changes from your repository
+          git fetch origin
+          
+          # 3. Pull down the exact branch code being evaluated in the PR
+          git pull origin main
+          
+          # 4. Force Docker Compose to rebuild the container directly from the fresh source code
+          docker compose up -d --build --force-recreate
