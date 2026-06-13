@@ -14,40 +14,9 @@ DB_DIR = "/app/data" if IS_DOCKER else "./data"
 DB_PATH = os.path.join(DB_DIR, "zambot.db")
 CONFIG_PATH = os.path.join(DB_DIR, "feeds.json")
 
+# Instantiating SyncManager automatically runs BaseStorage/IceAndFieldStorage initialization,
+# which sets up all tables using the 'iceandfield_' prefix on a zero-ops deployment.
 sync_manager = SyncManager(DB_PATH)
-
-
-# --- Database Schema Setup ---
-def init_db(db_path):
-    db_dir = os.path.dirname(db_path)
-    if not os.path.exists(db_dir):
-        os.makedirs(db_dir)
-
-    with sqlite3.connect(db_path) as conn:
-        # Create Sessions table (matches your preferred column order)
-        conn.execute("""
-            CREATE TABLE IF NOT EXISTS sessions (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                rink_name TEXT,
-                event_name TEXT,
-                session_name TEXT,
-                program_name TEXT,
-                session_date TEXT,
-                session_start_time TEXT,
-                session_end_time TEXT,
-                timezone TEXT,
-                status TEXT,
-                UNIQUE(rink_name, session_date, session_start_time)
-            )
-        """)
-        # Create Feed Hashes table for the caching logic
-        conn.execute("""
-            CREATE TABLE IF NOT EXISTS feed_hashes (
-                feed_id TEXT PRIMARY KEY,
-                last_hash TEXT
-            )
-        """)
-    print(f"Database initialized at {db_path}")
 
 
 # --- Helper Logic ---
@@ -63,22 +32,29 @@ def get_feeds():
 async def run_scheduled_sync():
     print("CRON: Starting daily 4:00 AM sync...")
     feeds = get_feeds()
-    # Using run_in_executor if sync_all wasn't fully async,
-    # but since it uses httpx.AsyncClient, we can just await it.
-    await sync_manager.sync_all(feeds)
+    for feed in feeds:
+        if feed.get("parser_type") == "iceandfield":
+            await sync_manager.sync_iceandfield(feed)
+        else:
+            if hasattr(sync_manager, "sync_all"):
+                await sync_manager.sync_all(feeds)
+                break
+
+
+def scheduled_sync_wrapper():
+    """Safe sync runner to isolate the async loop execution thread within APScheduler."""
+    asyncio.run(run_scheduled_sync())
 
 
 # --- App Lifespan (Startup/Shutdown) ---
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # 1. Initialize Tables
-    init_db(DB_PATH)
-
-    # 2. Start Scheduler
+    # 1. Start Background Scheduler (Local time zone aware)
     scheduler = BackgroundScheduler(timezone="America/Chicago")
-    # hour=4 triggers at 4:00 AM Georgetown time
+
+    # Run the hash-guarded sync process automatically every day at 4:00 AM local time
     scheduler.add_job(
-        lambda: asyncio.run(run_scheduled_sync()),
+        scheduled_sync_wrapper,
         CronTrigger(hour=4, minute=0)
     )
     scheduler.start()
@@ -86,10 +62,11 @@ async def lifespan(app: FastAPI):
 
     yield
 
-    # 3. Shutdown
+    # 2. Shutdown Hooks
     scheduler.shutdown()
 
 
+# Explicitly global definition for ASGI loader visibility
 app = FastAPI(title="Zambot Hockey Parser", lifespan=lifespan)
 
 
@@ -107,19 +84,28 @@ def read_root():
 
 @app.post("/sync")
 async def trigger_sync(background_tasks: BackgroundTasks):
-    """Manual sync trigger for testing or forced updates."""
+    """Manual sync trigger endpoint for immediate local or droplet validation updates."""
     feeds = get_feeds()
-    background_tasks.add_task(sync_manager.sync_all, feeds)
+
+    # Re-use background tasks worker to process without freezing API response times
+    for feed in feeds:
+        if feed.get("parser_type") == "iceandfield":
+            background_tasks.add_task(sync_manager.sync_iceandfield, feed)
+        else:
+            if hasattr(sync_manager, "sync_all"):
+                background_tasks.add_task(sync_manager.sync_all, feeds)
+                break
+
     return {"message": "Sync started across current and +6 upcoming months."}
 
 
 @app.get("/sessions")
 def get_sessions():
-    """Returns all upcoming hockey sessions sorted by date and time."""
+    """Returns all aggregated hockey sessions sorted chronologically by date and time."""
     with sqlite3.connect(DB_PATH) as conn:
         conn.row_factory = sqlite3.Row
         cursor = conn.execute("""
-            SELECT * FROM sessions 
+            SELECT * FROM iceandfield_sessions 
             ORDER BY session_date ASC, session_start_time ASC
         """)
         return [dict(row) for row in cursor.fetchall()]

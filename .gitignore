@@ -22,3 +22,6 @@ Thumbs.db
 
 # Docker
 .docker/
+
+#my
+start-local.ps1

@@ -1,90 +1,111 @@
 import httpx
-import hashlib
 import calendar
-import re
-import sqlite3
+import asyncio
 from datetime import datetime
-from src.parser_manager import get_parser
+from src.parsers.iceandfield_parser import IceAndFieldParser
+from src.storage.iceandfield_storage import IceAndFieldStorage
 
 
 class SyncManager:
-    def __init__(self, db_path):
-        self.db_path = db_path
+    def __init__(self, db_path: str):
+        self.storage = IceAndFieldStorage(db_path)
+        self.parser = IceAndFieldParser()
 
-    def should_process(self, feed_id, current_hash):
-        with sqlite3.connect(self.db_path) as conn:
-            cursor = conn.execute("SELECT last_hash FROM feed_hashes WHERE feed_id = ?", (feed_id,))
-            row = cursor.fetchone()
-            return row is None or row[0] != current_hash
+    async def sync_iceandfield(self, config: dict):
+        """
+        Calculates a dynamic rolling 6-month date range, handles inner-page
+        pagination, and intelligently halts early if a month returns no events.
+        """
+        custom_timeout = httpx.Timeout(timeout=10.0, read=30.0)
 
-    def update_feed_hash(self, feed_id, current_hash):
-        with sqlite3.connect(self.db_path) as conn:
-            conn.execute("INSERT OR REPLACE INTO feed_hashes (feed_id, last_hash) VALUES (?, ?)",
-                         (feed_id, current_hash))
+        async with httpx.AsyncClient(timeout=custom_timeout) as client:
+            # 1. Sync Facility Metadata
+            info_res = await client.get(config["info_url"])
+            if info_res.status_code == 200:
+                facility = self.parser.parse_facility_info(info_res.json())
+                self.storage.save_facility_info(facility)
 
-    async def sync_all(self, feeds):
-        now = datetime.now()
+            # 2. Sync Event Types Reference Lookup
+            types_res = await client.get(config["event_types_url"])
+            if types_res.status_code == 200:
+                event_types = self.parser.parse_event_types(types_res.json())
+                self.storage.save_event_types(event_types)
 
-        # Calculate months to fetch: Current month + 6 months ahead (Total 7 months)
-        months_to_fetch = []
-        for i in range(7):
-            month = (now.month + i - 1) % 12 + 1
-            year = now.year + (now.month + i - 1) // 12
-            months_to_fetch.append((year, month))
+            # 3. Dynamic Rolling Month + Paginated Loop with Early Exit Guard
+            base_url = config["events_base_url"]
+            now = datetime.now()
+            current_year = now.year
+            current_month = now.month
 
-        async with httpx.AsyncClient() as client:
-            for feed in feeds:
-                parser = get_parser(feed['parser_type'])
-                if not parser:
-                    print(f"Skipping {feed['name']}: No parser found for {feed['parser_type']}")
-                    continue
+            for i in range(7):
+                target_month = current_month + i
+                target_year = current_year
+                if target_month > 12:
+                    target_month -= 12
+                    target_year += 1
 
-                for year, month in months_to_fetch:
-                    last_day = calendar.monthrange(year, month)[1]
-                    start_str = f"{year}-{month:02d}-01"
-                    end_str = f"{year}-{month:02d}-{last_day:02d}"
+                _, last_day = calendar.monthrange(target_year, target_month)
 
-                    # Inject placeholders into the URL from feeds.json
-                    url = feed['url'].format(start=start_str, end=end_str)
+                start_str = f"{target_year}-{target_month:02d}-01 00:00:00"
+                end_str = f"{target_year}-{target_month:02d}-{last_day:02d} 23:59:59"
 
+                print(f"🔄 Processing month batch: {target_year}-{target_month:02d} ({start_str} to {end_str})")
+
+                base_params = {
+                    "cache[save]": "false",
+                    "page[size]": "100",
+                    "sort": "start",
+                    "company": "iceandfield",
+                    "filter[start__gte]": start_str,
+                    "filter[start__lte]": end_str,
+                    "filter[resource.facility.my_sam_visible]": "true",
+                    "filter[eventType.code__not]": "L",
+                    "filter[resource.facility.id]": config.get("facility_id", "1"),
+                    "filterRelations[comments.comment_type]": "public",
+                    "include": "homeTeam.league.programType,visitingTeam.league.programType,summary,resource.facility,resourceArea,comments,eventType"
+                }
+
+                current_page = 1
+                has_more_pages = True
+                month_has_data = True
+
+                while has_more_pages:
+                    params = base_params.copy()
+                    params["page[number]"] = str(current_page)
+
+                    print(f"   Fetching Page {current_page}...")
                     try:
-                        print(f"Syncing {feed['name']} for {year}-{month:02d}...")
-                        response = await client.get(url, timeout=20.0)  # Slightly longer timeout for 6 months of data
-                        response.raise_for_status()
+                        response = await client.get(base_url, params=params)
+                    except httpx.ReadTimeout:
+                        print(f"⚠️ Page {current_page} timed out. Retrying once...")
+                        await asyncio.sleep(3)
+                        response = await client.get(base_url, params=params)
 
-                        content_hash = hashlib.md5(response.text.encode()).hexdigest()
-                        feed_id = f"{feed['parser_type']}_{year}_{month}"
+                    if response.status_code != 200:
+                        print(f"❌ Error fetching page {current_page}: {response.status_code}")
+                        break
 
-                        if not self.should_process(feed_id, content_hash):
-                            print(f"  -> No changes for {feed_id}. Skipping.")
-                            continue
+                    payload = response.json()
+                    data_list = payload.get("data", [])
 
-                        data = parser.parse(response.json())
-                        self.save_to_db(data)
-                        self.update_feed_hash(feed_id, content_hash)
-                        print(f"  -> Success: {len(data)} sessions processed.")
+                    # 🛑 EARLY EXIT CHECK: If the page returns an empty data array
+                    if not data_list:
+                        print(f"🛑 Found empty data payload ('data': []) at page {current_page}.")
+                        print(f"   No further schedules are published yet. Halting monthly iteration.")
+                        month_has_data = False
+                        break  # Breaks out of the inner pagination 'while' loop
 
-                    except Exception as e:
-                        print(f"  -> Failed to sync {feed['name']} for {year}-{month}: {e}")
+                    sessions = self.parser.parse_sessions(payload, facility_id=config.get("facility_id", "1"))
+                    if sessions:
+                        self.storage.save_sessions(sessions)
+                        print(f"   ✅ Saved {len(sessions)} sessions from Page {current_page}")
 
-    def save_to_db(self, data):
-        with sqlite3.connect(self.db_path) as conn:
-            for s in data:
-                try:
-                    conn.execute("""
-                        INSERT INTO sessions (
-                            rink_name, event_name, session_name, program_name,
-                            session_date, session_start_time, session_end_time,
-                            timezone, status
-                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-                    """, (s['rink'], s['event_name'], s['session_name'], s['program_name'],
-                          s['date'], s['start'], s['end'], s['timezone'], s['status']))
-                except sqlite3.IntegrityError:
-                    # Update existing record (e.g., if status changed from available to full)
-                    conn.execute("""
-                        UPDATE sessions SET 
-                            session_end_time = ?, status = ?, event_name = ?, 
-                            session_name = ?, program_name = ?
-                        WHERE rink_name = ? AND session_date = ? AND session_start_time = ?
-                    """, (s['end'], s['status'], s['event_name'], s['session_name'],
-                          s['program_name'], s['rink'], s['date'], s['start']))
+                    meta = payload.get("meta", {})
+                    page_info = meta.get("page", {})
+                    last_page = page_info.get("last-page", 1)
+
+                    if current_page >= last_page:
+                        has_more_pages = False
+                    else:
+                        current_page += 1
+                        await asyncio.sleep(1)
