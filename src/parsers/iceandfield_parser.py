@@ -1,100 +1,84 @@
-import datetime
 from src.parsers.base_parser import BaseParser
 
-
 class IceAndFieldParser(BaseParser):
-    def __init__(self, base_url=None):
-        self.base_url = base_url
+    def parse_page_payload(self, raw_json: dict) -> list[dict]:
+        included = raw_json.get("included", []) or []
 
-    def _build_params(self):
-        """
-        Gathers baseline static and dynamic parameters across the 90-day window.
-        """
-        today = datetime.datetime.now()
-        start_date = today.strftime("%Y-%m-%d 00:00:00")
-        three_months_out = today + datetime.timedelta(days=90)
-        end_date = three_months_out.strftime("%Y-%m-%d 23:59:59")
-
-        params = {
-            "company": "iceandfield",
-            "cache[save]": "false",
-            "page[size]": "100",
-            "sort": "start",
-            "filter[start__gte]": start_date,
-            "filter[start__lte]": end_date,
-            "include": "eventType,summary,resource.facility"
-        }
-
-        target_codes = ["10", "12", "15", "16", "17", "22", "g", "r"]
-        for index, code in enumerate(target_codes):
-            params[f"filter[or][{index}][eventType.code]"] = code
-
-        return params
-
-    def parse_page_payload(self, payload: dict) -> list[dict]:
-        """
-        Maps, cross-references, and flattens JSON:API nodes and sideloaded relationships.
-        Corrects empty columns by targeting exact live payload attribute structures.
-        """
-        events = payload.get("data", [])
-        included = payload.get("included", [])
-
-        # 1. Map all sideloaded metadata by matching unique (type, id) pairs using string IDs
+        # 1. Map sideloaded metadata by strict JSON:API hyphenated types
         included_map = {}
         for item in included:
-            item_type = item.get("type")
-            item_id = str(item.get("id")) if item.get("id") is not None else ""
-            if item_type and item_id:
-                included_map[(item_type, item_id)] = item
+            i_type = item.get("type")
+            i_id = str(item.get("id"))
+            if i_type not in included_map:
+                included_map[i_type] = {}
+            included_map[i_type][i_id] = item.get("attributes", {}) or {}
 
         flat_records = []
+        for item in raw_json.get("data", []) or []:
+            item_id = str(item.get("id"))
+            attr = item.get("attributes", {}) or {}
+            rels = item.get("relationships", {}) or {}
 
-        # 2. Extract and link properties item by item
-        for event in events:
-            event_id = str(event.get("id"))
-            attrs = event.get("attributes", {}) or {}
-            rels = event.get("relationships", {}) or {}
+            # --- Sideloaded Resolutions ---
+            # Resource (Rink)
+            res_id = str(rels.get("resource", {}).get("data", {}).get("id", ""))
+            res_attrs = included_map.get("resources", {}).get(res_id, {})
+            rink_name = res_attrs.get("name") or "Unknown Rink"
 
-            # Locate the summary object (Handles singular/plural naming variants natively)
-            sum_ref = rels.get("summary", {}).get("data", {}) or {}
-            sum_id = str(sum_ref.get("id", ""))
-            sum_obj = included_map.get(("summary", sum_id)) or included_map.get(("summaries", sum_id)) or {}
-            sum_attrs = sum_obj.get("attributes", {}) or {}
-
-            # Locate Resource Node (Rink details linked from root event relationships)
-            res_ref = rels.get("resource", {}).get("data", {}) or {}
-            res_id = str(res_ref.get("id", ""))
-            res_obj = included_map.get(("resource", res_id)) or included_map.get(("resources", res_id)) or {}
-            res_attrs = res_obj.get("attributes", {}) or {}
-
-            # Locate Facility Node (nested inside resource relationships hierarchy)
-            fac_ref = res_obj.get("relationships", {}).get("facility", {}).get("data", {}) or {}
+            # Facility Node (nested under resource)
+            fac_ref = res_attrs.get("relationships", {}).get("facility", {}).get("data", {}) or {}
             fac_id = str(fac_ref.get("id", ""))
-            fac_obj = included_map.get(("facility", fac_id)) or included_map.get(("facilities", fac_id)) or {}
-            fac_attrs = fac_obj.get("attributes", {}) or {}
+            fac_attrs = included_map.get("facilities", {}).get(fac_id, {})
+            facility_name = fac_attrs.get("name") or "Main Facility"
 
-            # 3. Compile the flattened schema layout mapping the exact live keys
-            flat_record = {
-                "id": event_id,
-                "summary_name": sum_attrs.get("name") or attrs.get("name") or attrs.get("desc") or "Unnamed Session",
-                "start_time": attrs.get("start") or "",
-                "end_time": attrs.get("end") or "",
+            # Event Type
+            et_id = str(rels.get("eventType", {}).get("data", {}).get("id", ""))
+            et_attrs = included_map.get("event-types", {}).get(et_id, {})
 
-                # Length/Duration in minutes is part of the root event attributes node
-                "length": attrs.get("length") or 0,
+            # Event Summary
+            sum_attrs = included_map.get("event-summaries", {}).get(item_id, {})
+            if not sum_attrs:
+                sum_id = str(rels.get("summary", {}).get("data", {}).get("id", ""))
+                sum_attrs = included_map.get("event-summaries", {}).get(sum_id, {})
 
-                # Metrics all map safely from the matched event-summary included node attributes
-                "registered_count": sum_attrs.get("registered_count") if sum_attrs.get(
-                    "registered_count") is not None else 0,
-                "remaining_slots": sum_attrs.get("open_slots") if sum_attrs.get("open_slots") is not None else 0,
-                "registration_status": sum_attrs.get("registration_status") or attrs.get(
-                    "registration_status") or "unknown",
-                "composite_capacity": sum_attrs.get("composite_capacity") if sum_attrs.get(
-                    "composite_capacity") is not None else 0,
+            # --- Flat Mapping ---
+            session_name = sum_attrs.get("name") or attr.get("desc") or attr.get("name") or "Unnamed Session"
 
-                "resource_name": res_attrs.get("name") or "Unknown Rink",
-                "facility_name": fac_attrs.get("name") or "Main Facility"
-            }
-            flat_records.append(flat_record)
+            # Duration comes from event-types, defaulting to root attribute
+            length = et_attrs.get("length")
+            if length is None:
+                length = attr.get("length", 0)
+
+            # Registration count
+            registered_count = sum_attrs.get("registered_count")
+            if registered_count is None:
+                registered_count = 0
+
+            # Open slots
+            open_slots = sum_attrs.get("remaining_registration_slots")
+            if open_slots is None:
+                open_slots = sum_attrs.get("open_slots")
+            if open_slots is None:
+                open_slots = attr.get("open_slots", 0)
+
+            composite_capacity = sum_attrs.get("composite_capacity")
+            if composite_capacity is None:
+                composite_capacity = 0
+
+            status = sum_attrs.get("registration_status") or attr.get("registration_status", "unknown")
+
+            flat_records.append({
+                "id": item_id,
+                "summary_name": session_name,
+                "start_time": attr.get("start") or "",
+                "end_time": attr.get("end") or "",
+                "length": length,
+                "registered_count": registered_count,
+                "remaining_slots": open_slots,
+                "composite_capacity": composite_capacity,
+                "registration_status": status,
+                "resource_name": rink_name,
+                "facility_name": facility_name
+            })
 
         return flat_records
