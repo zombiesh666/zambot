@@ -17,14 +17,17 @@ jobs:
         username: ${{ secrets.USERNAME }}
         key: ${{ secrets.SSH_PRIVATE_KEY }}
         script: |
-          # 1. Navigate into your production directory
+          # Navigate into your production directory
           cd ~/zambot
           
-          # 2. Fetch the latest code changes from your repository
+          # 1. Temporarily override the remote URL to authenticate seamlessly using the pipeline token
+          git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git
+          
+          # 2. Fetch the absolute latest changes from GitHub
           git fetch origin
           
-          # 3. Pull down the exact branch code being evaluated in the PR
-          git pull origin main
+          # 3. Force the local files to match the main branch exactly, clearing out legacy tracking issues
+          git reset --hard origin/main
           
-          # 4. Force Docker Compose to rebuild the container directly from the fresh source code
+          # 4. Force Docker Compose to build the container locally from the fresh files
           docker compose up -d --build --force-recreate
