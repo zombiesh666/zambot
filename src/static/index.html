@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ZAMBOT // Austin Hockey Schedule Aggregator</title>
+    <style>
+        :root {
+            --bg-main: #020617;
+            --bg-card: #0f172a;
+            --bg-header: rgba(15, 23, 42, 0.7);
+            --border: #1e293b;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --accent-blue: #2563eb;
+            --accent-gold: #f59e0b;
+            --status-open: #10b981;
+            --status-full: #f43f5e;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            background-color: var(--bg-main);
+            color: var(--text-main);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            -webkit-font-smoothing: antialiased;
+            padding-bottom: 3rem;
+        }
+
+        header {
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            background-color: var(--bg-header);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            border-bottom: 1px solid var(--border);
+        }
+        .header-container {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+        .branding h1 { font-size: 1.25rem; font-weight: 800; tracking-spacing: -0.05em; }
+        .branding p { font-size: 0.75rem; color: var(--text-muted); }
+
+        .sync-btn {
+            background-color: var(--bg-card);
+            color: var(--text-main);
+            border: 1px solid var(--border);
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .sync-btn:hover { background-color: var(--border); }
+        .sync-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        main { max-width: 1100px; margin: 2rem auto; padding: 0 1rem; }
+        .toolbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .pill-group {
+            background-color: var(--bg-card);
+            border: 1px solid var(--border);
+            padding: 0.25rem;
+            border-radius: 8px;
+            display: flex;
+            gap: 0.25rem;
+        }
+        .pill {
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            padding: 0.5rem 1rem;
+            font-size: 0.75rem;
+            font-weight: 600;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+        .pill.active { background-color: var(--accent-blue); color: #fff; }
+
+        .search-box {
+            background-color: var(--bg-card);
+            border: 1px solid var(--border);
+            color: var(--text-main);
+            padding: 0.6rem 1rem;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            width: 100%;
+            max-width: 360px;
+            outline: none;
+        }
+        .search-box:focus { border-color: var(--accent-blue); }
+
+        .date-section { margin-bottom: 2.5rem; }
+        .date-header {
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-muted);
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+        .date-header::after { content: ''; flex: 1; height: 1px; background-color: var(--border); }
+
+        .session-grid { display: grid; gap: 0.75rem; }
+        .session-card {
+            background-color: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 1rem;
+        }
+        .session-info { display: flex; flex-direction: column; gap: 0.35rem; }
+        .session-title-line { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
+        .session-name { font-weight: 600; font-size: 0.95rem; }
+
+        .badge {
+            font-size: 0.65rem;
+            font-weight: 700;
+            padding: 0.15rem 0.4rem;
+            border-radius: 4px;
+            text-transform: uppercase;
+        }
+        .badge-gold { background: rgba(245, 158, 11, 0.1); color: var(--accent-gold); border: 1px solid rgba(245, 158, 11, 0.2); }
+        .badge-silver { background: rgba(148, 163, 184, 0.1); color: var(--text-main); border: 1px solid rgba(148, 163, 184, 0.2); }
+
+        .session-meta { font-size: 0.75rem; color: var(--text-muted); display: flex; gap: 0.5rem; flex-wrap: wrap; }
+        .time-highlight { color: #60a5fa; font-weight: 500; }
+
+        .session-capacity { display: flex; align-items: center; gap: 1rem; }
+        .capacity-numbers { text-align: right; }
+        .spots-count { font-size: 0.85rem; font-weight: 700; }
+        .spots-label { font-size: 0.6rem; color: var(--text-muted); text-transform: uppercase; }
+
+        .status-pill {
+            padding: 0.35rem 0.75rem;
+            font-size: 0.7rem;
+            font-weight: 700;
+            border-radius: 20px;
+            border: 1px solid transparent;
+        }
+        .status-open { background: rgba(16, 185, 129, 0.1); color: var(--status-open); border-color: rgba(16, 185, 129, 0.2); }
+        .status-full { background: rgba(244, 63, 94, 0.1); color: var(--status-full); border-color: rgba(244, 63, 94, 0.2); }
+
+        .state-msg { text-align: center; padding: 5rem 1rem; color: var(--text-muted); font-size: 0.9rem; }
+        .spinner {
+            width: 2rem; height: 2rem;
+            border: 3px solid var(--border); border-top-color: var(--accent-blue);
+            border-radius: 50%; margin: 0 auto 1rem; animation: spin 0.8s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        @media (max-width: 640px) {
+            .session-card { flex-direction: column; align-items: flex-start; }
+            .session-capacity { width: 100%; justify-content: space-between; border-top: 1px solid var(--border); padding-top: 0.75rem; }
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="header-container">
+            <div class="branding">
+                <h1>ZAMBOT</h1>
+                <p>Austin Ice Arena Local Aggregator</p>
+            </div>
+            <button class="sync-btn" id="syncBtn" onclick="triggerRemoteSync()">Refresh Schedule</button>
+        </div>
+    </header>
+
+    <main>
+        <section class="toolbar">
+            <div class="pill-group">
+                <button class="pill active" onclick="filterRink('All', this)">All Rinks</button>
+                <button class="pill" onclick="filterRink('Gold Rink', this)">Gold Rink</button>
+                <button class="pill" onclick="filterRink('Silver Rink', this)">Silver Rink</button>
+            </div>
+            <input type="text" class="search-box" id="searchBox" placeholder="Filter by type (Drop-In, Stick & Puck, Team)..." oninput="handleSearch()">
+        </section>
+
+        <section id="scheduleView"></section>
+    </main>
+
+    <script>
+        let rawSessions = [];
+        let activeRink = 'All';
+        let searchQuery = '';
+
+        async function fetchSessions() {
+            const container = document.getElementById('scheduleView');
+            container.innerHTML = '<div class="state-msg"><div class="spinner"></div>Streaming fresh schedule matrix from SQLite backend...</div>';
+
+            try {
+                const res = await fetch('/sessions');
+                if (!res.ok) throw new Error('Data drop offline');
+                rawSessions = await res.json();
+                renderAgenda();
+            } catch (err) {
+                container.innerHTML = `<div class="state-msg">❌ Error loading records: ${err.message}</div>`;
+            }
+        }
+
+        function renderAgenda() {
+            const container = document.getElementById('scheduleView');
+
+            const filtered = rawSessions.filter(s => {
+                const matchesRink = activeRink === 'All' || s.resource_name === activeRink;
+                const matchesSearch = !searchQuery ||
+                    (s.summary_name && s.summary_name.toLowerCase().includes(searchQuery)) ||
+                    (s.resource_name && s.resource_name.toLowerCase().includes(searchQuery));
+                return matchesRink && matchesSearch;
+            });
+
+            if (filtered.length === 0) {
+                container.innerHTML = '<div class="state-msg">📭 No upcoming hockey sessions found matching criteria.</div>';
+                return;
+            }
+
+            const groups = {};
+            filtered.forEach(s => {
+                // Group by the start_time date segment safely
+                const dateKey = s.start_time ? s.start_time.split('T')[0] : 'Unknown Date';
+                if (!groups[dateKey]) groups[dateKey] = [];
+                groups[dateKey].push(s);
+            });
+
+            let htmlString = '';
+            Object.keys(groups).sort().forEach(date => {
+                let displayHeader = date;
+                if (date !== 'Unknown Date') {
+                    // Split manually to avoid system timezone offsets shifting the display date day
+                    const parts = date.split('-');
+                    const dateObj = new Date(Date.UTC(parts[0], parts[1] - 1, parts[2]));
+                    displayHeader = dateObj.toLocaleDateString('en-US', {
+                        weekday: 'long', month: 'short', day: 'numeric', timeZone: 'UTC'
+                    });
+                }
+
+                htmlString += `
+                    <div class="date-section">
+                        <div class="date-header">${displayHeader}</div>
+                        <div class="session-grid">
+                `;
+
+                groups[date].forEach(s => {
+                    const rName = s.resource_name || 'Unknown Rink';
+                    const badgeClass = rName.includes('Gold') ? 'badge-gold' : 'badge-silver';
+
+                    // FIX: Match exact table schema field parameters
+                    const openSlots = s.remaining_slots !== undefined ? s.remaining_slots : 0;
+                    const capacity = s.composite_capacity !== undefined ? s.composite_capacity : 0;
+                    const isOpen = openSlots > 0 && s.registration_status === 'open';
+
+                    const statusClass = isOpen ? 'status-open' : 'status-full';
+                    const statusText = isOpen ? 'Open' : 'Full';
+
+                    htmlString += `
+                        <div class="session-card">
+                            <div class="session-info">
+                                <div class="session-title-line">
+                                    <span class="session-name">${s.summary_name || 'Unnamed Session'}</span>
+                                    <span class="badge ${badgeClass}">${rName}</span>
+                                </div>
+                                <div class="session-meta">
+                                    <span class="time-highlight">${formatTimeStr(s.start_time)} - ${formatTimeStr(s.end_time)}</span>
+                                    <span>•</span>
+                                    <span>${s.length || 0} Min</span>
+                                    <span>•</span>
+                                    <span>${s.facility_name || 'Ice & Field'}</span>
+                                </div>
+                            </div>
+                            <div class="session-capacity">
+                                <div class="capacity-numbers">
+                                    <p class="spots-count">${openSlots} / ${capacity}</p>
+                                    <p class="spots-label">Spots Left</p>
+                                </div>
+                                <span class="status-pill ${statusClass}">${statusText}</span>
+                            </div>
+                        </div>
+                    `;
+                });
+
+                htmlString += `</div></div>`;
+            });
+
+            container.innerHTML = htmlString;
+        }
+
+        function filterRink(rink, element) {
+            document.querySelectorAll('.pill').forEach(btn => btn.classList.remove('active'));
+            element.classList.add('active');
+            activeRink = rink;
+            renderAgenda();
+        }
+
+        function handleSearch() {
+            searchQuery = document.getElementById('searchBox').value.toLowerCase().trim();
+            renderAgenda();
+        }
+
+        async function triggerRemoteSync() {
+            const btn = document.getElementById('syncBtn');
+            btn.disabled = true;
+            btn.innerText = 'Syncing...';
+            try {
+                await fetch('/sync', { method: 'POST' });
+                setTimeout(async () => {
+                    await fetchSessions();
+                    btn.disabled = false;
+                    btn.innerText = 'Refresh Schedule';
+                }, 3000);
+            } catch (err) {
+                btn.disabled = false;
+                btn.innerText = 'Refresh Schedule';
+            }
+        }
+
+        function formatTimeStr(isoString) {
+            if (!isoString) return 'N/A';
+            const timePart = isoString.includes('T') ? isoString.split('T')[1] : isoString;
+            const [hours, minutes] = timePart.split(':');
+            const hr = parseInt(hours, 10);
+            const ampm = hr >= 12 ? 'PM' : 'AM';
+            const displayHr = hr % 12 || 12;
+            return `${displayHr}:${minutes} ${ampm}`;
+        }
+
+        window.addEventListener('DOMContentLoaded', fetchSessions);
+    </script>
+</body>
+</html>
