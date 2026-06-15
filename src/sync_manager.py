@@ -6,32 +6,33 @@ from src.parsers.iceandfield_parser import IceAndFieldParser
 from src.storage.iceandfield_storage import IceAndFieldStorage
 from src.parsers.chaparral_parser import ChaparralParser
 from src.storage.chaparral_storage import ChaparralStorage
+from src.parsers.pond_parser import PondParser
+from src.storage.pond_storage import PondStorage
 
 
 class SyncManager:
     def __init__(self, db_path: str):
-        # Ice & Field Instances
         self.iaf_storage = IceAndFieldStorage(db_path)
         self.iaf_parser = IceAndFieldParser()
 
-        # Chaparral Ice Instances
         self.chap_storage = ChaparralStorage(db_path)
         self.chap_parser = ChaparralParser()
 
+        # New Pond Modules
+        self.pond_storage = PondStorage(db_path)
+        self.pond_parser = PondParser()
+
     async def sync_all_feeds(self, config: dict):
-        """
-        Orchestrates sequential execution loops to completely refresh
-        schedules across all configured arena platforms.
-        """
         print("🚀 Starting all aggregation pipelines...")
 
-        # 1. Run Ice & Field Pipeline
-        iaf_url = config.get("iceandfield_feed") or "https://api.daysmartrecreation.com/v1/events"
-        await self.sync_iceandfield(iaf_url)
+        iaf_url = config.get("iceandfield_feed")
+        if iaf_url: await self.sync_iceandfield(iaf_url)
 
-        # 2. Run Chaparral Ice Pipeline
-        chap_url = config.get("chaparral_feed") or "https://api.daysmartrecreation.com/v1/events"
-        await self.sync_chaparral(chap_url)
+        chap_url = config.get("chaparral_feed")
+        if chap_url: await self.sync_chaparral(chap_url)
+
+        pond_url = config.get("pond_feed")
+        if pond_url: await self.sync_pond(pond_url)
 
         print("✨ All aggregation pipelines finished successfully.")
 
@@ -200,3 +201,22 @@ class SyncManager:
                     else:
                         current_page += 1
                         await asyncio.sleep(1)
+    async def sync_pond(self, base_url: str):
+        """Fetches the static HTML page from Shopify and parses via BeautifulSoup."""
+        custom_timeout = httpx.Timeout(timeout=10.0, read=30.0)
+        async with httpx.AsyncClient(timeout=custom_timeout) as client:
+            print(f"🔄 Pond: Fetching HTML target -> {base_url}")
+            try:
+                response = await client.get(base_url)
+                if response.status_code == 200:
+                    current_year = datetime.now().year
+                    flat_records = self.pond_parser.parse_html_payload(response.text, current_year)
+                    if flat_records:
+                        self.pond_storage.save_flat_records(flat_records)
+                        print(f"   ✅ Pond: Saved {len(flat_records)} sessions")
+                    else:
+                        print(f"   ⚠️ Pond: Parsed payload contained zero current-year sessions.")
+                else:
+                    print(f"❌ Error fetching Pond HTML: {response.status_code}")
+            except Exception as e:
+                print(f"❌ Critical exception parsing Pond feed: {e}")

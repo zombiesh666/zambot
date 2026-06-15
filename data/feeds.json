@@ -1,4 +1,5 @@
 {
   "iceandfield_feed": "https://api.daysmartrecreation.com/v1/events",
-  "chaparral_feed": "https://api.daysmartrecreation.com/v1/events"
+  "chaparral_feed": "https://api.daysmartrecreation.com/v1/events",
+  "pond_feed": "https://the-pond-hockey-club.myshopify.com/collections"
 }
