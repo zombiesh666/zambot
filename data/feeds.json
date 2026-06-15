@@ -1,3 +1,4 @@
 {
-  "iceandfield_feed": "https://api.daysmartrecreation.com/v1/events"
+  "iceandfield_feed": "https://api.daysmartrecreation.com/v1/events",
+  "chaparral_feed": "https://api.daysmartrecreation.com/v1/events"
 }

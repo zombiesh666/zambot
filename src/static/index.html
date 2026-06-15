@@ -80,6 +80,7 @@
             border-radius: 8px;
             display: flex;
             gap: 0.25rem;
+            flex-wrap: wrap;
         }
         .pill {
             background: none;
@@ -145,6 +146,7 @@
         }
         .badge-gold { background: rgba(245, 158, 11, 0.1); color: var(--accent-gold); border: 1px solid rgba(245, 158, 11, 0.2); }
         .badge-silver { background: rgba(148, 163, 184, 0.1); color: var(--text-main); border: 1px solid rgba(148, 163, 184, 0.2); }
+        .badge-chaparral { background: rgba(37, 99, 235, 0.1); color: #60a5fa; border: 1px solid rgba(37, 99, 235, 0.2); }
 
         .session-meta { font-size: 0.75rem; color: var(--text-muted); display: flex; gap: 0.5rem; flex-wrap: wrap; }
         .time-highlight { color: #60a5fa; font-weight: 500; }
@@ -184,7 +186,7 @@
         <div class="header-container">
             <div class="branding">
                 <h1>ZAMBOT</h1>
-                <p>Austin Ice Arena Local Aggregator</p>
+                <p>Austin Ice Arena Arena Aggregator</p>
             </div>
             <button class="sync-btn" id="syncBtn" onclick="triggerRemoteSync()">Refresh Schedule</button>
         </div>
@@ -193,9 +195,10 @@
     <main>
         <section class="toolbar">
             <div class="pill-group">
-                <button class="pill active" onclick="filterRink('All', this)">All Rinks</button>
-                <button class="pill" onclick="filterRink('Gold Rink', this)">Gold Rink</button>
-                <button class="pill" onclick="filterRink('Silver Rink', this)">Silver Rink</button>
+                <button class="pill active" onclick="filterScope('All', this)">All Sessions</button>
+                <button class="pill" onclick="filterScope('Gold Rink', this)">Gold Rink</button>
+                <button class="pill" onclick="filterScope('Silver Rink', this)">Silver Rink</button>
+                <button class="pill" onclick="filterScope('Chaparral', this)">Chaparral Ice</button>
             </div>
             <input type="text" class="search-box" id="searchBox" placeholder="Filter by type (Drop-In, Stick & Puck, Team)..." oninput="handleSearch()">
         </section>
@@ -205,7 +208,7 @@
 
     <script>
         let rawSessions = [];
-        let activeRink = 'All';
+        let activeFilter = 'All';
         let searchQuery = '';
 
         async function fetchSessions() {
@@ -225,12 +228,32 @@
         function renderAgenda() {
             const container = document.getElementById('scheduleView');
 
+            // Get today's date string in YYYY-MM-DD format based on local time
+            const now = new Date();
+            const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+
             const filtered = rawSessions.filter(s => {
-                const matchesRink = activeRink === 'All' || s.resource_name === activeRink;
+                // 1. Time filter: Drop any event where the calendar date is before today
+                const eventDate = s.start_time ? s.start_time.split('T')[0] : '';
+                if (eventDate < todayStr) return false;
+
+                // 2. Scope filtration logic evaluating rink strings or facility contexts
+                let matchesScope = false;
+                if (activeFilter === 'All') {
+                    matchesScope = true;
+                } else if (activeFilter === 'Chaparral') {
+                    matchesScope = s.facility_name && s.facility_name.toLowerCase().includes('chaparral');
+                } else {
+                    matchesScope = s.resource_name === activeFilter;
+                }
+
+                // 3. Keyword Search filter
                 const matchesSearch = !searchQuery ||
                     (s.summary_name && s.summary_name.toLowerCase().includes(searchQuery)) ||
-                    (s.resource_name && s.resource_name.toLowerCase().includes(searchQuery));
-                return matchesRink && matchesSearch;
+                    (s.resource_name && s.resource_name.toLowerCase().includes(searchQuery)) ||
+                    (s.facility_name && s.facility_name.toLowerCase().includes(searchQuery));
+
+                return matchesScope && matchesSearch;
             });
 
             if (filtered.length === 0) {
@@ -240,7 +263,6 @@
 
             const groups = {};
             filtered.forEach(s => {
-                // Group by the start_time date segment safely
                 const dateKey = s.start_time ? s.start_time.split('T')[0] : 'Unknown Date';
                 if (!groups[dateKey]) groups[dateKey] = [];
                 groups[dateKey].push(s);
@@ -250,7 +272,6 @@
             Object.keys(groups).sort().forEach(date => {
                 let displayHeader = date;
                 if (date !== 'Unknown Date') {
-                    // Split manually to avoid system timezone offsets shifting the display date day
                     const parts = date.split('-');
                     const dateObj = new Date(Date.UTC(parts[0], parts[1] - 1, parts[2]));
                     displayHeader = dateObj.toLocaleDateString('en-US', {
@@ -266,9 +287,15 @@
 
                 groups[date].forEach(s => {
                     const rName = s.resource_name || 'Unknown Rink';
-                    const badgeClass = rName.includes('Gold') ? 'badge-gold' : 'badge-silver';
+                    const fName = s.facility_name || 'Unknown Facility';
 
-                    // FIX: Match exact table schema field parameters
+                    let badgeClass = 'badge-silver';
+                    if (fName.toLowerCase().includes('chaparral')) {
+                        badgeClass = 'badge-chaparral';
+                    } else if (rName.includes('Gold')) {
+                        badgeClass = 'badge-gold';
+                    }
+
                     const openSlots = s.remaining_slots !== undefined ? s.remaining_slots : 0;
                     const capacity = s.composite_capacity !== undefined ? s.composite_capacity : 0;
                     const isOpen = openSlots > 0 && s.registration_status === 'open';
@@ -288,7 +315,7 @@
                                     <span>•</span>
                                     <span>${s.length || 0} Min</span>
                                     <span>•</span>
-                                    <span>${s.facility_name || 'Ice & Field'}</span>
+                                    <span>${fName}</span>
                                 </div>
                             </div>
                             <div class="session-capacity">
@@ -308,10 +335,10 @@
             container.innerHTML = htmlString;
         }
 
-        function filterRink(rink, element) {
+        function filterScope(scope, element) {
             document.querySelectorAll('.pill').forEach(btn => btn.classList.remove('active'));
             element.classList.add('active');
-            activeRink = rink;
+            activeFilter = scope;
             renderAgenda();
         }
 
@@ -330,7 +357,7 @@
                     await fetchSessions();
                     btn.disabled = false;
                     btn.innerText = 'Refresh Schedule';
-                }, 3000);
+                }, 4000); // 4-second delay window to let both dynamic async fetch requests land
             } catch (err) {
                 btn.disabled = false;
                 btn.innerText = 'Refresh Schedule';
