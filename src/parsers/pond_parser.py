@@ -6,6 +6,7 @@ from src.parsers.base_parser import BaseParser
 
 class PondParser(BaseParser):
     def parse_html_payload(self, html_content: str, current_year: int) -> list[dict]:
+        """Scrapes the raw Shopify HTML to extract the core session parameters."""
         soup = BeautifulSoup(html_content, "html.parser")
         flat_records = []
 
@@ -95,35 +96,55 @@ class PondParser(BaseParser):
         return flat_records
 
     def enrich_with_json(self, record: dict, json_payload: dict):
+        """Maps the detailed variant array JSON metrics directly onto the record."""
         product = json_payload.get("product", {})
         variants = product.get("variants", [])
 
         if not variants: return
 
-        inventory_quantity = 0
-        composite_capacity = 22
+        # Baselines
+        skater_inv = 0
+        skater_cap = 22
+        goalie_inv = 0
+        goalie_cap = 2  # Standard baseline based on Pond JSON descriptions
 
         found_skater = False
+        found_goalie = False
+
+        # Dynamically map both Skater and Goalie nodes
         for variant in variants:
             v_title = variant.get("title", "")
-            if "Goalie" not in v_title:
-                inventory_quantity = variant.get("inventory_quantity", 0)
+
+            if "Goalie" in v_title:
+                goalie_inv = variant.get("inventory_quantity", 0)
+                found_goalie = True
+            else:
+                skater_inv = variant.get("inventory_quantity", 0)
                 if "Skater" in v_title:
-                    composite_capacity = 20
+                    skater_cap = 20
                 else:
-                    composite_capacity = 22
+                    skater_cap = 22
                 found_skater = True
-                break
 
-        if not found_skater: return
+        if not found_skater and not found_goalie: return
 
-        remaining_slots = inventory_quantity
-        registered_count = composite_capacity - remaining_slots
-        if registered_count < 0: registered_count = 0
+        # Calculate exact registrations, using max(0) to prevent negative counts if oversold
+        skaters_registered = max(0, skater_cap - skater_inv)
+        goalies_registered = max(0, goalie_cap - goalie_inv)
 
-        registration_status = "closed" if remaining_slots <= 0 else "open"
+        # Status Logic: Closed only if both roles are fully booked out (or if skaters are booked and no goalies exist)
+        registration_status = "open"
+        if skater_inv <= 0 and (not found_goalie or goalie_inv <= 0):
+            registration_status = "closed"
 
-        record["skaters_registered"] = registered_count
-        record["skaters_open_slots"] = remaining_slots
-        record["skaters_capacity"] = composite_capacity
+        # Apply to database record
+        record["skaters_registered"] = skaters_registered
+        record["skaters_open_slots"] = skater_inv
+        record["skaters_capacity"] = skater_cap
+
+        if found_goalie:
+            record["goalies_registered"] = goalies_registered
+            record["goalies_open_slots"] = goalie_inv
+            record["goalies_capacity"] = goalie_cap
+
         record["registration_status"] = registration_status
