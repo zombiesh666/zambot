@@ -1,35 +1,54 @@
 import re
-from datetime import datetime
+from datetime import datetime, timedelta
 from bs4 import BeautifulSoup
 from src.parsers.base_parser import BaseParser
 
 
 class PondParser(BaseParser):
     def parse_html_payload(self, html_content: str, current_year: int) -> list[dict]:
-        """Scrapes the raw Shopify HTML to extract the core session parameters."""
+        """Scrapes the raw Shopify HTML to extract the core session parameters,
+
+        enforcing a strict rolling 31-day window filter.
+        """
         soup = BeautifulSoup(html_content, "html.parser")
         flat_records = []
 
+        # Calculate the strict today + 1 month bounds
+        now = datetime.now()
+        today_date = now.date()
+        max_future_date = today_date + timedelta(days=31)
+
+        # Find all section headers (which contain the dates)
         headers = soup.find_all("div", class_="section-header")
         for header in headers:
             date_p = header.find("p", class_="section-header--left")
             if not date_p: continue
 
             date_str = date_p.get_text(strip=True)
+
+            # Rule 1: Only grab events matching the current year
             if str(current_year) not in date_str: continue
 
+            # Find the subsequent grid wrapper
             grid = header.find_next_sibling("div", class_="grid")
             if not grid: continue
 
+            # Rule 2: Ignore empty grid nodes
             items = grid.find_all("div", class_="grid-item")
             if not items: continue
 
+            # Parse "June 19th, Friday 2026" into a base date string
             match = re.search(r'([A-Za-z]+)\s+(\d+).*?(\d{4})', date_str)
             base_date = ""
             if match:
                 month_str, day_str, year_str = match.groups()
                 try:
                     parsed_date = datetime.strptime(f"{month_str} {day_str} {year_str}", "%B %d %Y")
+
+                    # 👉 NEW RULE: Filter out dates before today or more than 1 month into the future
+                    if parsed_date.date() < today_date or parsed_date.date() > max_future_date:
+                        continue
+
                     base_date = parsed_date.strftime("%Y-%m-%d")
                 except ValueError:
                     continue
@@ -102,16 +121,14 @@ class PondParser(BaseParser):
 
         if not variants: return
 
-        # Baselines
         skater_inv = 0
         skater_cap = 22
         goalie_inv = 0
-        goalie_cap = 2  # Standard baseline based on Pond JSON descriptions
+        goalie_cap = 2
 
         found_skater = False
         found_goalie = False
 
-        # Dynamically map both Skater and Goalie nodes
         for variant in variants:
             v_title = variant.get("title", "")
 
@@ -128,16 +145,13 @@ class PondParser(BaseParser):
 
         if not found_skater and not found_goalie: return
 
-        # Calculate exact registrations, using max(0) to prevent negative counts if oversold
         skaters_registered = max(0, skater_cap - skater_inv)
         goalies_registered = max(0, goalie_cap - goalie_inv)
 
-        # Status Logic: Closed only if both roles are fully booked out (or if skaters are booked and no goalies exist)
         registration_status = "open"
         if skater_inv <= 0 and (not found_goalie or goalie_inv <= 0):
             registration_status = "closed"
 
-        # Apply to database record
         record["skaters_registered"] = skaters_registered
         record["skaters_open_slots"] = skater_inv
         record["skaters_capacity"] = skater_cap
