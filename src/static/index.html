@@ -127,7 +127,6 @@
                 } else if (activeFilter === 'The Pond') {
                     matchesScope = s.facility_name && s.facility_name.toLowerCase().includes('pond');
                 } else if (activeFilter === 'Crossover') {
-                    // Group both specific rink designations under the single Crossover tab
                     matchesScope = s.resource_name && (s.resource_name.includes('Gold') || s.resource_name.includes('Silver'));
                 } else {
                     matchesScope = s.resource_name === activeFilter;
@@ -191,6 +190,7 @@
                         statusText = isOpen ? 'Open' : 'Closed';
                     }
 
+                    // 👉 This generic logic automatically builds the active link if 'event_url' is present!
                     const titleHTML = s.event_url
                         ? `<a href="${s.event_url}" target="_blank" class="session-name link-active">${s.summary_name || 'Unnamed Session'} 🔗</a>`
                         : `<span class="session-name">${s.summary_name || 'Unnamed Session'}</span>`;
