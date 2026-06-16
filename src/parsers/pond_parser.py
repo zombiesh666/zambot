@@ -7,18 +7,15 @@ from src.parsers.base_parser import BaseParser
 class PondParser(BaseParser):
     def parse_html_payload(self, html_content: str, current_year: int) -> list[dict]:
         """Scrapes the raw Shopify HTML to extract the core session parameters,
-
         enforcing a strict rolling 31-day window filter.
         """
         soup = BeautifulSoup(html_content, "html.parser")
         flat_records = []
 
-        # Calculate the strict today + 1 month bounds
         now = datetime.now()
         today_date = now.date()
         max_future_date = today_date + timedelta(days=31)
 
-        # Find all section headers (which contain the dates)
         headers = soup.find_all("div", class_="section-header")
         for header in headers:
             date_p = header.find("p", class_="section-header--left")
@@ -26,18 +23,14 @@ class PondParser(BaseParser):
 
             date_str = date_p.get_text(strip=True)
 
-            # Rule 1: Only grab events matching the current year
             if str(current_year) not in date_str: continue
 
-            # Find the subsequent grid wrapper
             grid = header.find_next_sibling("div", class_="grid")
             if not grid: continue
 
-            # Rule 2: Ignore empty grid nodes
             items = grid.find_all("div", class_="grid-item")
             if not items: continue
 
-            # Parse "June 19th, Friday 2026" into a base date string
             match = re.search(r'([A-Za-z]+)\s+(\d+).*?(\d{4})', date_str)
             base_date = ""
             if match:
@@ -45,7 +38,6 @@ class PondParser(BaseParser):
                 try:
                     parsed_date = datetime.strptime(f"{month_str} {day_str} {year_str}", "%B %d %Y")
 
-                    # 👉 NEW RULE: Filter out dates before today or more than 1 month into the future
                     if parsed_date.date() < today_date or parsed_date.date() > max_future_date:
                         continue
 
@@ -90,8 +82,21 @@ class PondParser(BaseParser):
 
                     s_dt = datetime.strptime(start_time, "%Y-%m-%dT%H:%M:%S")
                     e_dt = datetime.strptime(end_time, "%Y-%m-%dT%H:%M:%S")
+
+                    # Calculate raw difference
                     length = int((e_dt - s_dt).total_seconds() / 60)
-                    if length < 0: length += 24 * 60
+                    if length < 0:
+                        length += 24 * 60
+
+                    # Fix AM/PM crossover logic if the game exceeds 4 hours
+                    if length > 240:
+                        s_dt = s_dt - timedelta(hours=12)
+                        start_time = s_dt.strftime("%Y-%m-%dT%H:%M:%S")
+
+                        # Recalculate true game length
+                        length = int((e_dt - s_dt).total_seconds() / 60)
+                        if length < 0:
+                            length += 24 * 60
 
                 resource_name = "Pond" if "PT" in summary_name else "Barn"
 

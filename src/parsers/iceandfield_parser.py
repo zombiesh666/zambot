@@ -1,5 +1,6 @@
 from src.parsers.base_parser import BaseParser
 
+
 class IceAndFieldParser(BaseParser):
     def parse_page_payload(self, raw_json: dict) -> list[dict]:
         included = raw_json.get("included", []) or []
@@ -42,9 +43,19 @@ class IceAndFieldParser(BaseParser):
 
             session_name = sum_attrs.get("name") or attr.get("desc") or attr.get("name") or "Unnamed Session"
 
-            length = et_attrs.get("length")
-            if length is None:
-                length = attr.get("length", 0)
+            # --- Length Parsing & Hours-to-Minutes Conversion ---
+            raw_length = et_attrs.get("length") or attr.get("length", 0)
+            length_minutes = 0
+
+            if isinstance(raw_length, str) and ":" in raw_length:
+                parts = raw_length.split(":")
+                if len(parts) >= 2:
+                    length_minutes = int(parts[0]) * 60 + int(parts[1])
+            else:
+                try:
+                    length_minutes = int(float(raw_length) * 60)
+                except (ValueError, TypeError):
+                    length_minutes = 0
 
             registered_count = sum_attrs.get("registered_count")
             if registered_count is None: registered_count = 0
@@ -74,7 +85,7 @@ class IceAndFieldParser(BaseParser):
                 "summary_name": session_name,
                 "start_time": start_time_iso,
                 "end_time": end_time_iso,
-                "length": length,
+                "length": length_minutes,
                 "skaters_registered": registered_count,
                 "skaters_open_slots": open_slots,
                 "skaters_capacity": composite_capacity,
