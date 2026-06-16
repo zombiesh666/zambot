@@ -6,10 +6,10 @@ from src.parsers.base_parser import BaseParser
 
 class PondParser(BaseParser):
     def parse_html_payload(self, html_content: str, current_year: int) -> list[dict]:
+        """Scrapes the raw Shopify HTML to extract the core session parameters."""
         soup = BeautifulSoup(html_content, "html.parser")
         flat_records = []
 
-        # Find all section headers
         headers = soup.find_all("div", class_="section-header")
         for header in headers:
             date_p = header.find("p", class_="section-header--left")
@@ -18,21 +18,17 @@ class PondParser(BaseParser):
 
             date_str = date_p.get_text(strip=True)
 
-            # Rule: Only grab events matching the current year
             if str(current_year) not in date_str:
                 continue
 
-            # Find the subsequent grid wrapper
             grid = header.find_next_sibling("div", class_="grid")
             if not grid:
                 continue
 
-            # Rule: Ignore empty grid nodes
             items = grid.find_all("div", class_="grid-item")
             if not items:
                 continue
 
-            # Parse "June 19th, Friday 2026" into a base date string
             match = re.search(r'([A-Za-z]+)\s+(\d+).*?(\d{4})', date_str)
             base_date = ""
             if match:
@@ -51,13 +47,20 @@ class PondParser(BaseParser):
                 if not a_tag:
                     continue
 
-                # Rule: absolute URL prefixed to the href tag
-                event_url = "https://the-pond-hockey-club.myshopify.com" + a_tag.get("href", "")
+                raw_href = a_tag.get("href", "")
+
+                # FIX 1: Extract the canonical product path to avoid 301 Redirects when appending .json
+                prod_match = re.search(r'(/products/[^/?]+)', raw_href)
+                if prod_match:
+                    canonical_path = prod_match.group(1)
+                else:
+                    canonical_path = raw_href.split("?")[0]
+
+                event_url = "https://the-pond-hockey-club.myshopify.com" + canonical_path
 
                 p_tag = item.find("p")
                 summary_name = p_tag.get_text(strip=True) if p_tag else "Unnamed Session"
 
-                # Rule: Extract time string and convert to ISO format and calculate length
                 start_time = ""
                 end_time = ""
                 length = 0
@@ -68,7 +71,6 @@ class PondParser(BaseParser):
 
                     def to_24h(t_str):
                         h, m = map(int, t_str.split(":"))
-                        # Assuming hockey schedules generally default to afternoon/evening PM hours (1-11)
                         if 1 <= h <= 11:
                             h += 12
                         return f"{h:02d}:{m:02d}:00"
@@ -83,9 +85,8 @@ class PondParser(BaseParser):
                     e_dt = datetime.strptime(end_time, "%Y-%m-%dT%H:%M:%S")
                     length = int((e_dt - s_dt).total_seconds() / 60)
                     if length < 0:
-                        length += 24 * 60  # Handle late games crossing midnight boundaries
+                        length += 24 * 60
 
-                # Rule: Barn unless "PT" is found
                 resource_name = "Pond" if "PT" in summary_name else "Barn"
 
                 flat_records.append({
@@ -96,10 +97,52 @@ class PondParser(BaseParser):
                     "registered_count": 0,
                     "remaining_slots": 0,
                     "composite_capacity": 0,
-                    "registration_status": "",
+                    "registration_status": "unknown",
                     "resource_name": resource_name,
                     "facility_name": "The Pond Hockey Club",
                     "event_url": event_url
                 })
 
         return flat_records
+
+    def enrich_with_json(self, record: dict, json_payload: dict):
+        """Maps the detailed variant array JSON metrics directly onto the record."""
+        product = json_payload.get("product", {})
+        variants = product.get("variants", [])
+
+        if not variants:
+            return  # Failsafe if Shopify drops an empty payload
+
+        inventory_quantity = 0
+        composite_capacity = 22
+
+        # Find the first variant that is explicitly NOT a Goalie
+        found_skater = False
+        for variant in variants:
+            v_title = variant.get("title", "")
+            if "Goalie" not in v_title:
+                inventory_quantity = variant.get("inventory_quantity", 0)
+
+                if "Skater" in v_title:
+                    composite_capacity = 20
+                else:
+                    composite_capacity = 22
+
+                found_skater = True
+                break
+
+        if not found_skater:
+            return
+
+        remaining_slots = inventory_quantity
+        registered_count = composite_capacity - remaining_slots
+
+        if registered_count < 0:
+            registered_count = 0
+
+        registration_status = "closed" if remaining_slots <= 0 else "open"
+
+        record["registered_count"] = registered_count
+        record["remaining_slots"] = remaining_slots
+        record["composite_capacity"] = composite_capacity
+        record["registration_status"] = registration_status
