@@ -46,7 +46,10 @@
         .badge-gold { background: rgba(245, 158, 11, 0.1); color: var(--accent-gold); border: 1px solid rgba(245, 158, 11, 0.2); }
         .badge-silver { background: rgba(148, 163, 184, 0.1); color: var(--text-main); border: 1px solid rgba(148, 163, 184, 0.2); }
         .badge-chaparral { background: rgba(37, 99, 235, 0.1); color: #60a5fa; border: 1px solid rgba(37, 99, 235, 0.2); }
-        .badge-pond { background: rgba(56, 189, 248, 0.1); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.2); }
+
+        /* Updated Red Badge Shades for Pond & Barn */
+        .badge-barn { background: rgba(220, 38, 38, 0.1); color: #ef4444; border: 1px solid rgba(220, 38, 38, 0.2); }
+        .badge-pond-rink { background: rgba(185, 28, 28, 0.1); color: #f87171; border: 1px solid rgba(185, 28, 28, 0.2); }
 
         .session-meta { font-size: 0.75rem; color: var(--text-muted); display: flex; gap: 0.5rem; flex-wrap: wrap; }
         .time-highlight { color: #60a5fa; font-weight: 500; }
@@ -59,6 +62,9 @@
         .status-pill { padding: 0.35rem 0.75rem; font-size: 0.7rem; font-weight: 700; border-radius: 20px; border: 1px solid transparent; }
         .status-open { background: rgba(16, 185, 129, 0.1); color: var(--status-open); border-color: rgba(16, 185, 129, 0.2); }
         .status-full { background: rgba(244, 63, 94, 0.1); color: var(--status-full); border-color: rgba(244, 63, 94, 0.2); }
+        /* New Status State Colors */
+        .status-closed { background: rgba(148, 163, 184, 0.1); color: #94a3b8; border-color: rgba(148, 163, 184, 0.2); }
+        .status-progress { background: rgba(56, 189, 248, 0.1); color: #38bdf8; border-color: rgba(56, 189, 248, 0.2); }
         .status-unknown { background: rgba(148, 163, 184, 0.1); color: var(--text-muted); border-color: rgba(148, 163, 184, 0.2); }
 
         .state-msg { text-align: center; padding: 5rem 1rem; color: var(--text-muted); font-size: 0.9rem; }
@@ -167,11 +173,16 @@
                     const rName = s.resource_name || 'Unknown Rink';
                     const fName = s.facility_name || 'Unknown Facility';
 
+                    // Assign Resource Badges
                     let badgeClass = 'badge-silver';
                     if (fName.toLowerCase().includes('chaparral')) {
                         badgeClass = 'badge-chaparral';
                     } else if (fName.toLowerCase().includes('pond')) {
-                        badgeClass = 'badge-pond';
+                        if (rName.toLowerCase().includes('barn')) {
+                            badgeClass = 'badge-barn';
+                        } else {
+                            badgeClass = 'badge-pond-rink';
+                        }
                     } else if (rName.includes('Gold')) {
                         badgeClass = 'badge-gold';
                     }
@@ -182,15 +193,43 @@
                     const goalieOpen = s.goalies_open_slots !== undefined ? s.goalies_open_slots : 0;
                     const goalieCap = s.goalies_capacity !== undefined ? s.goalies_capacity : 0;
 
+                    // Unified Status Logic
                     let statusClass = 'status-unknown';
-                    let statusText = 'N/A';
-                    if (s.registration_status && s.registration_status !== 'unknown' && s.registration_status !== '') {
-                        const isOpen = s.registration_status === 'open';
-                        statusClass = isOpen ? 'status-open' : 'status-full';
-                        statusText = isOpen ? 'Open' : 'Closed';
+                    let statusText = 'Unknown';
+
+                    const nowTime = new Date().getTime();
+                    const startTime = s.start_time ? new Date(s.start_time).getTime() : 0;
+                    const endTime = s.end_time ? new Date(s.end_time).getTime() : 0;
+
+                    const feedStatus = s.registration_status ? s.registration_status.toLowerCase() : '';
+
+                    const isEndTimePassed = endTime > 0 && nowTime > endTime;
+                    const isClosedFeed = feedStatus === 'closed';
+                    const isFullFeed = feedStatus === 'full';
+
+                    const totalCap = skaterCap + goalieCap;
+                    const totalOpen = skaterOpen + goalieOpen;
+                    const isSpotsFull = (totalCap > 0 && totalOpen <= 0);
+
+                    const isClosed = isEndTimePassed || isClosedFeed;
+                    const isFull = isSpotsFull || isFullFeed;
+                    const isInProgress = !isClosed && !isFull && startTime > 0 && endTime > 0 && nowTime >= startTime && nowTime <= endTime;
+                    const isOpen = (!isClosed && !isInProgress && !isFull) || (feedStatus === 'open' && !isClosed);
+
+                    if (isClosed) {
+                        statusText = 'Closed';
+                        statusClass = 'status-closed';
+                    } else if (isFull) {
+                        statusText = 'Full';
+                        statusClass = 'status-full';
+                    } else if (isInProgress) {
+                        statusText = 'In Progress';
+                        statusClass = 'status-progress';
+                    } else if (isOpen) {
+                        statusText = 'Open';
+                        statusClass = 'status-open';
                     }
 
-                    // 👉 This generic logic automatically builds the active link if 'event_url' is present!
                     const titleHTML = s.event_url
                         ? `<a href="${s.event_url}" target="_blank" class="session-name link-active">${s.summary_name || 'Unnamed Session'} 🔗</a>`
                         : `<span class="session-name">${s.summary_name || 'Unnamed Session'}</span>`;
