@@ -82,8 +82,7 @@
         <section class="toolbar">
             <div class="pill-group">
                 <button class="pill active" onclick="filterScope('All', this)">All Sessions</button>
-                <button class="pill" onclick="filterScope('Gold Rink', this)">Gold Rink</button>
-                <button class="pill" onclick="filterScope('Silver Rink', this)">Silver Rink</button>
+                <button class="pill" onclick="filterScope('Crossover', this)">Crossover</button>
                 <button class="pill" onclick="filterScope('Chaparral', this)">Chaparral Ice</button>
                 <button class="pill" onclick="filterScope('The Pond', this)">The Pond</button>
             </div>
@@ -127,6 +126,9 @@
                     matchesScope = s.facility_name && s.facility_name.toLowerCase().includes('chaparral');
                 } else if (activeFilter === 'The Pond') {
                     matchesScope = s.facility_name && s.facility_name.toLowerCase().includes('pond');
+                } else if (activeFilter === 'Crossover') {
+                    // Group both specific rink designations under the single Crossover tab
+                    matchesScope = s.resource_name && (s.resource_name.includes('Gold') || s.resource_name.includes('Silver'));
                 } else {
                     matchesScope = s.resource_name === activeFilter;
                 }
@@ -175,11 +177,9 @@
                         badgeClass = 'badge-gold';
                     }
 
-                    // Map specific Skater metrics
                     const skaterOpen = s.skaters_open_slots !== undefined ? s.skaters_open_slots : 0;
                     const skaterCap = s.skaters_capacity !== undefined ? s.skaters_capacity : 0;
 
-                    // Map specific Goalie metrics
                     const goalieOpen = s.goalies_open_slots !== undefined ? s.goalies_open_slots : 0;
                     const goalieCap = s.goalies_capacity !== undefined ? s.goalies_capacity : 0;
 
@@ -195,7 +195,6 @@
                         ? `<a href="${s.event_url}" target="_blank" class="session-name link-active">${s.summary_name || 'Unnamed Session'} 🔗</a>`
                         : `<span class="session-name">${s.summary_name || 'Unnamed Session'}</span>`;
 
-                    // Generate composite capacity interface based on available roles
                     let capacityHTML = `
                         <div class="capacity-numbers">
                             <p class="spots-count">${skaterOpen} / ${skaterCap}</p>
@@ -203,7 +202,6 @@
                         </div>
                     `;
 
-                    // This dynamic check handles The Pond's newly parsed goalie parameters automatically!
                     if (goalieCap > 0) {
                         capacityHTML += `
                             <div class="capacity-numbers">
