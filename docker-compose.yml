@@ -8,4 +8,7 @@ services:
       - "8000:8000"
     volumes:
       - ~/zambot/data:/app/data
+      # FIX: Sync the droplet host system clock and timezone parameters directly into the container environment
+      - /etc/localtime:/etc/localtime:ro
+      - /etc/timezone:/etc/timezone:ro
     restart: always
