@@ -51,7 +51,7 @@
         .session-meta { font-size: 0.75rem; color: var(--text-muted); display: flex; gap: 0.5rem; flex-wrap: wrap; }
         .time-highlight { color: #60a5fa; font-weight: 500; }
 
-        .session-capacity { display: flex; align-items: center; gap: 1rem; }
+        .session-capacity { display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; }
         .capacity-numbers { text-align: right; }
         .spots-count { font-size: 0.85rem; font-weight: 700; }
         .spots-label { font-size: 0.6rem; color: var(--text-muted); text-transform: uppercase; }
@@ -175,20 +175,42 @@
                         badgeClass = 'badge-gold';
                     }
 
-                    const openSlots = s.remaining_slots !== undefined ? s.remaining_slots : 0;
-                    const capacity = s.composite_capacity !== undefined ? s.composite_capacity : 0;
+                    // Map specific Skater metrics
+                    const skaterOpen = s.skaters_open_slots !== undefined ? s.skaters_open_slots : 0;
+                    const skaterCap = s.skaters_capacity !== undefined ? s.skaters_capacity : 0;
+
+                    // Map specific Goalie metrics
+                    const goalieOpen = s.goalies_open_slots !== undefined ? s.goalies_open_slots : 0;
+                    const goalieCap = s.goalies_capacity !== undefined ? s.goalies_capacity : 0;
 
                     let statusClass = 'status-unknown';
                     let statusText = 'N/A';
                     if (s.registration_status && s.registration_status !== 'unknown' && s.registration_status !== '') {
-                        const isOpen = openSlots > 0 && s.registration_status === 'open';
+                        const isOpen = s.registration_status === 'open';
                         statusClass = isOpen ? 'status-open' : 'status-full';
-                        statusText = isOpen ? 'Open' : 'Full';
+                        statusText = isOpen ? 'Open' : 'Closed';
                     }
 
                     const titleHTML = s.event_url
                         ? `<a href="${s.event_url}" target="_blank" class="session-name link-active">${s.summary_name || 'Unnamed Session'} 🔗</a>`
                         : `<span class="session-name">${s.summary_name || 'Unnamed Session'}</span>`;
+
+                    // Generate composite capacity interface based on available roles
+                    let capacityHTML = `
+                        <div class="capacity-numbers">
+                            <p class="spots-count">${skaterOpen} / ${skaterCap}</p>
+                            <p class="spots-label">Skater Spots</p>
+                        </div>
+                    `;
+
+                    if (goalieCap > 0) {
+                        capacityHTML += `
+                            <div class="capacity-numbers">
+                                <p class="spots-count">${goalieOpen} / ${goalieCap}</p>
+                                <p class="spots-label">Goalie Spots</p>
+                            </div>
+                        `;
+                    }
 
                     htmlString += `
                         <div class="session-card">
@@ -206,10 +228,7 @@
                                 </div>
                             </div>
                             <div class="session-capacity">
-                                <div class="capacity-numbers">
-                                    <p class="spots-count">${openSlots} / ${capacity}</p>
-                                    <p class="spots-label">Spots Left</p>
-                                </div>
+                                ${capacityHTML}
                                 <span class="status-pill ${statusClass}">${statusText}</span>
                             </div>
                         </div>

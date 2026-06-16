@@ -42,7 +42,6 @@ async def lifespan(app: FastAPI):
     scheduler = BackgroundScheduler(timezone="America/Chicago")
     scheduler.add_job(scheduled_sync_wrapper, CronTrigger(hour=4, minute=0))
     scheduler.start()
-    print("Scheduler initiated: Local America/Chicago cron sync thread launched.")
     yield
     scheduler.shutdown()
 
@@ -72,34 +71,35 @@ async def trigger_sync(background_tasks: BackgroundTasks):
 
 @app.get("/sessions")
 def get_sessions():
-    """Unifies three separate arena platforms utilizing NULL casting to balance column weights."""
-    if not os.path.exists(DB_PATH):
-        return []
+    if not os.path.exists(DB_PATH): return []
 
     with sqlite3.connect(DB_PATH) as conn:
         conn.row_factory = sqlite3.Row
 
         query = """
             SELECT CAST(id AS TEXT) as id, summary_name, start_time, end_time, length, 
-                   registered_count, remaining_slots, composite_capacity, 
+                   skaters_registered, skaters_open_slots, skaters_capacity, 
+                   goalies_registered, goalies_open_slots, goalies_capacity,
                    registration_status, resource_name, facility_name, NULL as event_url 
-            FROM iceandfield
+            FROM iceandfield_v2
             WHERE start_time >= date('now', 'localtime')
 
             UNION ALL
 
             SELECT CAST(id AS TEXT) as id, summary_name, start_time, end_time, length, 
-                   registered_count, remaining_slots, composite_capacity, 
+                   skaters_registered, skaters_open_slots, skaters_capacity, 
+                   goalies_registered, goalies_open_slots, goalies_capacity,
                    registration_status, resource_name, facility_name, NULL as event_url 
-            FROM chaparral_sessions
+            FROM chaparral_sessions_v2
             WHERE start_time >= date('now', 'localtime')
 
             UNION ALL
 
             SELECT CAST(id AS TEXT) as id, summary_name, start_time, end_time, length, 
-                   registered_count, remaining_slots, composite_capacity, 
+                   skaters_registered, skaters_open_slots, skaters_capacity, 
+                   goalies_registered, goalies_open_slots, goalies_capacity,
                    registration_status, resource_name, facility_name, event_url
-            FROM pond_sessions
+            FROM pond_sessions_v2
             WHERE start_time >= date('now', 'localtime')
 
             ORDER BY start_time ASC

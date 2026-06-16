@@ -36,7 +36,6 @@ class SyncManager:
         print("✨ All aggregation pipelines finished successfully.")
 
     async def sync_iceandfield(self, base_url: str):
-        # Keep existing Ice & Field aggregation logic
         custom_timeout = httpx.Timeout(timeout=10.0, read=30.0)
         async with httpx.AsyncClient(timeout=custom_timeout) as client:
             now = datetime.now()
@@ -62,7 +61,7 @@ class SyncManager:
                     "filter[start__lte]": end_str, "include": "eventType,summary,resource.facility"
                 }
 
-                target_codes = ["10", "12", "15", "16", "17", "22"]
+                target_codes = ["10", "12", "15", "16", "17", "22", "g", "r"]
                 for index, code in enumerate(target_codes):
                     base_params[f"filter[or][{index}][eventType.code]"] = code
 
@@ -73,13 +72,28 @@ class SyncManager:
                     params = base_params.copy()
                     params["page[number]"] = str(current_page)
 
-                    try:
-                        response = await client.get(base_url, params=params)
-                    except httpx.ReadTimeout:
-                        await asyncio.sleep(3)
-                        response = await client.get(base_url, params=params)
+                    response = None
+                    # Robust 3-Attempt Retry Loop for pagination
+                    for attempt in range(3):
+                        try:
+                            response = await client.get(base_url, params=params)
+                            if response.status_code == 200:
+                                break
+                            elif response.status_code == 429:
+                                await asyncio.sleep(2)
+                            else:
+                                break
+                        except httpx.ReadTimeout:
+                            print(f"   ⚠️ Page {current_page} timed out. Retrying (attempt {attempt + 1}/3)...")
+                            await asyncio.sleep(2)
+                        except Exception as e:
+                            print(f"   ⚠️ Request error on page {current_page}: {e}")
+                            await asyncio.sleep(2)
 
-                    if response.status_code != 200: break
+                    # Hard break if the server remains unresponsive after 3 attempts
+                    if not response or response.status_code != 200:
+                        print(f"❌ Failed to fetch page {current_page}. Skipping remaining pages for this month.")
+                        break
 
                     payload = response.json()
                     data_list = payload.get("data", [])
@@ -102,7 +116,6 @@ class SyncManager:
                         await asyncio.sleep(1)
 
     async def sync_chaparral(self, base_url: str):
-        # Keep existing Chaparral Ice logic
         custom_timeout = httpx.Timeout(timeout=10.0, read=30.0)
         async with httpx.AsyncClient(timeout=custom_timeout) as client:
             now = datetime.now()
@@ -128,7 +141,7 @@ class SyncManager:
                     "filter[start__lte]": end_str, "include": "eventType,summary,resource.facility"
                 }
 
-                chap_codes = ["6", "9", "12", "13"]
+                chap_codes = ["13", "g", "9", "12", "6", "r"]
                 for index, code in enumerate(chap_codes):
                     base_params[f"filter[or][{index}][eventType.code]"] = code
 
@@ -139,13 +152,27 @@ class SyncManager:
                     params = base_params.copy()
                     params["page[number]"] = str(current_page)
 
-                    try:
-                        response = await client.get(base_url, params=params)
-                    except httpx.ReadTimeout:
-                        await asyncio.sleep(3)
-                        response = await client.get(base_url, params=params)
+                    response = None
+                    # Robust 3-Attempt Retry Loop
+                    for attempt in range(3):
+                        try:
+                            response = await client.get(base_url, params=params)
+                            if response.status_code == 200:
+                                break
+                            elif response.status_code == 429:
+                                await asyncio.sleep(2)
+                            else:
+                                break
+                        except httpx.ReadTimeout:
+                            print(f"   ⚠️ Page {current_page} timed out. Retrying (attempt {attempt + 1}/3)...")
+                            await asyncio.sleep(2)
+                        except Exception as e:
+                            print(f"   ⚠️ Request error on page {current_page}: {e}")
+                            await asyncio.sleep(2)
 
-                    if response.status_code != 200: break
+                    if not response or response.status_code != 200:
+                        print(f"❌ Failed to fetch page {current_page}. Skipping remaining pages for this month.")
+                        break
 
                     payload = response.json()
                     data_list = payload.get("data", [])
@@ -168,9 +195,7 @@ class SyncManager:
                         await asyncio.sleep(1)
 
     async def sync_pond(self, base_url: str):
-        """Fetches HTML, loops through URLs, and requests the underlying JSON endpoints for capacity enrichment."""
         custom_timeout = httpx.Timeout(timeout=10.0, read=30.0)
-        # Initialize client with follow_redirects to ensure Shopify JSON routing works securely
         async with httpx.AsyncClient(timeout=custom_timeout, follow_redirects=True) as client:
             print(f"🔄 Pond: Fetching HTML target -> {base_url}")
             try:
@@ -187,7 +212,6 @@ class SyncManager:
                                 json_url = f"{event_url}.json"
                                 fetched = False
 
-                                # FIX 2: 3-Attempt Network Retry Loop
                                 for attempt in range(3):
                                     try:
                                         j_res = await client.get(json_url)
@@ -196,9 +220,9 @@ class SyncManager:
                                             fetched = True
                                             break
                                         elif j_res.status_code == 429:
-                                            await asyncio.sleep(2)  # Shopify rate limit backoff
+                                            await asyncio.sleep(2)
                                         else:
-                                            break  # End loop on hard 404s
+                                            break
                                     except httpx.ReadTimeout:
                                         await asyncio.sleep(1)
                                     except Exception as e:
@@ -209,7 +233,6 @@ class SyncManager:
                                 if not fetched:
                                     print(f"   ⚠️ Could not fetch capacity data for {json_url}")
 
-                                # Pace requests respectfully to prevent Shopify IP blocking
                                 await asyncio.sleep(0.5)
 
                         self.pond_storage.save_flat_records(flat_records)
