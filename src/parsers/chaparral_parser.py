@@ -47,6 +47,15 @@ class ChaparralParser(BaseParser):
 
             session_name = sum_attrs.get("name") or attr.get("desc") or attr.get("name") or "Unnamed Session"
 
+            # --- Event Type Mapping ---
+            event_type_str = "unknown"
+            if et_id in ["6", "13"]:
+                event_type_str = "public"
+            elif et_id == "9":
+                event_type_str = "dropin"
+            elif et_id == "12":
+                event_type_str = "stickandpuck"
+
             raw_length = et_attrs.get("length") or attr.get("length", 0)
             length_minutes = 0
 
@@ -71,7 +80,9 @@ class ChaparralParser(BaseParser):
             end_time_iso = attr.get("end") or ""
             status = sum_attrs.get("registration_status") or attr.get("registration_status", "unknown")
 
-            # Parse URL Strings
+            if start_time_iso and start_time_iso < now_iso:
+                status = "closed"
+
             start_date = start_time_iso.split("T")[0] if "T" in start_time_iso else start_time_iso.split(" ")[0]
             end_date = end_time_iso.split("T")[0] if "T" in end_time_iso else end_time_iso.split(" ")[0]
             if not end_date: end_date = start_date
@@ -102,7 +113,8 @@ class ChaparralParser(BaseParser):
                     "registration_status": status,
                     "resource_name": rink_name,
                     "facility_name": facility_name,
-                    "event_url": event_url
+                    "event_url": event_url,
+                    "event_type": event_type_str
                 }
 
             if is_goalie:

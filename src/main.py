@@ -80,8 +80,8 @@ def get_sessions():
             SELECT CAST(id AS TEXT) as id, summary_name, start_time, end_time, length, 
                    skaters_registered, skaters_open_slots, skaters_capacity, 
                    goalies_registered, goalies_open_slots, goalies_capacity,
-                   registration_status, resource_name, facility_name, event_url 
-            FROM iceandfield_v2
+                   registration_status, resource_name, facility_name, event_url, event_type
+            FROM iceandfield_v3
             WHERE start_time >= date('now', 'localtime')
 
             UNION ALL
@@ -89,8 +89,8 @@ def get_sessions():
             SELECT CAST(id AS TEXT) as id, summary_name, start_time, end_time, length, 
                    skaters_registered, skaters_open_slots, skaters_capacity, 
                    goalies_registered, goalies_open_slots, goalies_capacity,
-                   registration_status, resource_name, facility_name, event_url 
-            FROM chaparral_sessions_v2
+                   registration_status, resource_name, facility_name, event_url, event_type
+            FROM chaparral_sessions_v3
             WHERE start_time >= date('now', 'localtime')
 
             UNION ALL
@@ -98,8 +98,8 @@ def get_sessions():
             SELECT CAST(id AS TEXT) as id, summary_name, start_time, end_time, length, 
                    skaters_registered, skaters_open_slots, skaters_capacity, 
                    goalies_registered, goalies_open_slots, goalies_capacity,
-                   registration_status, resource_name, facility_name, event_url
-            FROM pond_sessions_v2
+                   registration_status, resource_name, facility_name, event_url, event_type
+            FROM pond_sessions_v3
             WHERE start_time >= date('now', 'localtime')
 
             ORDER BY start_time ASC

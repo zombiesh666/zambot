@@ -1,0 +1,1341 @@
+{
+    "meta": {
+        "page": {
+            "current-page": 1,
+            "per-page": 100,
+            "from": 1,
+            "to": 21,
+            "total": 21,
+            "last-page": 1
+        }
+    },
+    "links": {
+        "first": "http:\/\/api.daysmartrecreation.com\/api\/v1\/event-types?filter%5Bactive%5D=true&sort=name&page%5Bnumber%5D=1&page%5Bsize%5D=100",
+        "last": "http:\/\/api.daysmartrecreation.com\/api\/v1\/event-types?filter%5Bactive%5D=true&sort=name&page%5Bnumber%5D=1&page%5Bsize%5D=100"
+    },
+    "data": [
+        {
+            "type": "event-types",
+            "id": "15",
+            "attributes": {
+                "code": "15",
+                "name": "Adult Drop-In Hockey",
+                "color": "#245700",
+                "custom_form_id": null,
+                "product_id": 38,
+                "description": null,
+                "has_customer": false,
+                "has_team_home": false,
+                "has_team_away": false,
+                "has_roster": true,
+                "length": "01:15:00",
+                "active": true,
+                "member_app_display_name": null
+            },
+            "relationships": {
+                "customForm": {
+                    "data": null
+                },
+                "product": {
+                    "data": null
+                },
+                "reminderEmailTemplate": {
+                    "data": null
+                },
+                "program": {
+                    "data": null
+                },
+                "events": {
+                    "data": null
+                },
+                "facilities": {
+                    "data": null
+                },
+                "assignedFacilities": {
+                    "data": null
+                },
+                "termsAndConditions": {
+                    "data": null
+                },
+                "files": {
+                    "data": null
+                },
+                "eventTypeFees": {
+                    "data": null
+                },
+                "setupTaskAction": {
+                    "data": null
+                },
+                "takedownTaskAction": {
+                    "data": null
+                },
+                "resources": {
+                    "data": null
+                }
+            },
+            "links": {
+                "self": "http:\/\/api.daysmartrecreation.com\/api\/v1\/event-types\/15"
+            }
+        },
+        {
+            "type": "event-types",
+            "id": "19",
+            "attributes": {
+                "code": "19",
+                "name": "AMHA",
+                "color": "#25b0e0",
+                "custom_form_id": null,
+                "product_id": null,
+                "description": null,
+                "has_customer": true,
+                "has_team_home": false,
+                "has_team_away": false,
+                "has_roster": false,
+                "length": "01:00:00",
+                "active": true,
+                "member_app_display_name": null
+            },
+            "relationships": {
+                "customForm": {
+                    "data": null
+                },
+                "product": {
+                    "data": null
+                },
+                "reminderEmailTemplate": {
+                    "data": null
+                },
+                "program": {
+                    "data": null
+                },
+                "events": {
+                    "data": null
+                },
+                "facilities": {
+                    "data": null
+                },
+                "assignedFacilities": {
+                    "data": null
+                },
+                "termsAndConditions": {
+                    "data": null
+                },
+                "files": {
+                    "data": null
+                },
+                "eventTypeFees": {
+                    "data": null
+                },
+                "setupTaskAction": {
+                    "data": null
+                },
+                "takedownTaskAction": {
+                    "data": null
+                },
+                "resources": {
+                    "data": null
+                }
+            },
+            "links": {
+                "self": "http:\/\/api.daysmartrecreation.com\/api\/v1\/event-types\/19"
+            }
+        },
+        {
+            "type": "event-types",
+            "id": "b",
+            "attributes": {
+                "code": "b",
+                "name": "Block",
+                "color": "#f42424",
+                "custom_form_id": null,
+                "product_id": null,
+                "description": null,
+                "has_customer": false,
+                "has_team_home": false,
+                "has_team_away": false,
+                "has_roster": false,
+                "length": "01:00:00",
+                "active": true,
+                "member_app_display_name": null
+            },
+            "relationships": {
+                "customForm": {
+                    "data": null
+                },
+                "product": {
+                    "data": null
+                },
+                "reminderEmailTemplate": {
+                    "data": null
+                },
+                "program": {
+                    "data": null
+                },
+                "events": {
+                    "data": null
+                },
+                "facilities": {
+                    "data": null
+                },
+                "assignedFacilities": {
+                    "data": null
+                },
+                "termsAndConditions": {
+                    "data": null
+                },
+                "files": {
+                    "data": null
+                },
+                "eventTypeFees": {
+                    "data": null
+                },
+                "setupTaskAction": {
+                    "data": null
+                },
+                "takedownTaskAction": {
+                    "data": null
+                },
+                "resources": {
+                    "data": null
+                }
+            },
+            "links": {
+                "self": "http:\/\/api.daysmartrecreation.com\/api\/v1\/event-types\/b"
+            }
+        },
+        {
+            "type": "event-types",
+            "id": "k",
+            "attributes": {
+                "code": "k",
+                "name": "Camp",
+                "color": "#ff9020",
+                "custom_form_id": null,
+                "product_id": 11,
+                "description": null,
+                "has_customer": false,
+                "has_team_home": true,
+                "has_team_away": false,
+                "has_roster": false,
+                "length": "08:00:00",
+                "active": true,
+                "member_app_display_name": null
+            },
+            "relationships": {
+                "customForm": {
+                    "data": null
+                },
+                "product": {
+                    "data": null
+                },
+                "reminderEmailTemplate": {
+                    "data": null
+                },
+                "program": {
+                    "data": null
+                },
+                "events": {
+                    "data": null
+                },
+                "facilities": {
+                    "data": null
+                },
+                "assignedFacilities": {
+                    "data": null
+                },
+                "termsAndConditions": {
+                    "data": null
+                },
+                "files": {
+                    "data": null
+                },
+                "eventTypeFees": {
+                    "data": null
+                },
+                "setupTaskAction": {
+                    "data": null
+                },
+                "takedownTaskAction": {
+                    "data": null
+                },
+                "resources": {
+                    "data": null
+                }
+            },
+            "links": {
+                "self": "http:\/\/api.daysmartrecreation.com\/api\/v1\/event-types\/k"
+            }
+        },
+        {
+            "type": "event-types",
+            "id": "c",
+            "attributes": {
+                "code": "c",
+                "name": "Class",
+                "color": "#33b6ff",
+                "custom_form_id": null,
+                "product_id": 10,
+                "description": null,
+                "has_customer": false,
+                "has_team_home": false,
+                "has_team_away": false,
+                "has_roster": true,
+                "length": "00:30:00",
+                "active": true,
+                "member_app_display_name": null
+            },
+            "relationships": {
+                "customForm": {
+                    "data": null
+                },
+                "product": {
+                    "data": null
+                },
+                "reminderEmailTemplate": {
+                    "data": null
+                },
+                "program": {
+                    "data": null
+                },
+                "events": {
+                    "data": null
+                },
+                "facilities": {
+                    "data": null
+                },
+                "assignedFacilities": {
+                    "data": null
+                },
+                "termsAndConditions": {
+                    "data": null
+                },
+                "files": {
+                    "data": null
+                },
+                "eventTypeFees": {
+                    "data": null
+                },
+                "setupTaskAction": {
+                    "data": null
+                },
+                "takedownTaskAction": {
+                    "data": null
+                },
+                "resources": {
+                    "data": null
+                }
+            },
+            "links": {
+                "self": "http:\/\/api.daysmartrecreation.com\/api\/v1\/event-types\/c"
+            }
+        },
+        {
+            "type": "event-types",
+            "id": "17",
+            "attributes": {
+                "code": "17",
+                "name": "First Reponders Drop-In Hockey",
+                "color": "#a80000",
+                "custom_form_id": null,
+                "product_id": 38,
+                "description": null,
+                "has_customer": false,
+                "has_team_home": false,
+                "has_team_away": false,
+                "has_roster": true,
+                "length": "01:15:00",
+                "active": true,
+                "member_app_display_name": null
+            },
+            "relationships": {
+                "customForm": {
+                    "data": null
+                },
+                "product": {
+                    "data": null
+                },
+                "reminderEmailTemplate": {
+                    "data": null
+                },
+                "program": {
+                    "data": null
+                },
+                "events": {
+                    "data": null
+                },
+                "facilities": {
+                    "data": null
+                },
+                "assignedFacilities": {
+                    "data": null
+                },
+                "termsAndConditions": {
+                    "data": null
+                },
+                "files": {
+                    "data": null
+                },
+                "eventTypeFees": {
+                    "data": null
+                },
+                "setupTaskAction": {
+                    "data": null
+                },
+                "takedownTaskAction": {
+                    "data": null
+                },
+                "resources": {
+                    "data": null
+                }
+            },
+            "links": {
+                "self": "http:\/\/api.daysmartrecreation.com\/api\/v1\/event-types\/17"
+            }
+        },
+        {
+            "type": "event-types",
+            "id": "9",
+            "attributes": {
+                "code": "9",
+                "name": "Freestyle",
+                "color": "#da9bff",
+                "custom_form_id": null,
+                "product_id": 7,
+                "description": null,
+                "has_customer": false,
+                "has_team_home": false,
+                "has_team_away": false,
+                "has_roster": true,
+                "length": "00:30:00",
+                "active": true,
+                "member_app_display_name": null
+            },
+            "relationships": {
+                "customForm": {
+                    "data": null
+                },
+                "product": {
+                    "data": null
+                },
+                "reminderEmailTemplate": {
+                    "data": null
+                },
+                "program": {
+                    "data": null
+                },
+                "events": {
+                    "data": null
+                },
+                "facilities": {
+                    "data": null
+                },
+                "assignedFacilities": {
+                    "data": null
+                },
+                "termsAndConditions": {
+                    "data": null
+                },
+                "files": {
+                    "data": null
+                },
+                "eventTypeFees": {
+                    "data": null
+                },
+                "setupTaskAction": {
+                    "data": null
+                },
+                "takedownTaskAction": {
+                    "data": null
+                },
+                "resources": {
+                    "data": null
+                }
+            },
+            "links": {
+                "self": "http:\/\/api.daysmartrecreation.com\/api\/v1\/event-types\/9"
+            }
+        },
+        {
+            "type": "event-types",
+            "id": "g",
+            "attributes": {
+                "code": "g",
+                "name": "Game",
+                "color": "#0C3CE8",
+                "custom_form_id": null,
+                "product_id": null,
+                "description": null,
+                "has_customer": false,
+                "has_team_home": true,
+                "has_team_away": true,
+                "has_roster": false,
+                "length": "00:50:00",
+                "active": true,
+                "member_app_display_name": null
+            },
+            "relationships": {
+                "customForm": {
+                    "data": null
+                },
+                "product": {
+                    "data": null
+                },
+                "reminderEmailTemplate": {
+                    "data": null
+                },
+                "program": {
+                    "data": null
+                },
+                "events": {
+                    "data": null
+                },
+                "facilities": {
+                    "data": null
+                },
+                "assignedFacilities": {
+                    "data": null
+                },
+                "termsAndConditions": {
+                    "data": null
+                },
+                "files": {
+                    "data": null
+                },
+                "eventTypeFees": {
+                    "data": null
+                },
+                "setupTaskAction": {
+                    "data": null
+                },
+                "takedownTaskAction": {
+                    "data": null
+                },
+                "resources": {
+                    "data": null
+                }
+            },
+            "links": {
+                "self": "http:\/\/api.daysmartrecreation.com\/api\/v1\/event-types\/g"
+            }
+        },
+        {
+            "type": "event-types",
+            "id": "16",
+            "attributes": {
+                "code": "16",
+                "name": "High School Drop-In Hockey",
+                "color": "#33b6ff",
+                "custom_form_id": null,
+                "product_id": 39,
+                "description": null,
+                "has_customer": false,
+                "has_team_home": false,
+                "has_team_away": false,
+                "has_roster": true,
+                "length": "01:15:00",
+                "active": true,
+                "member_app_display_name": null
+            },
+            "relationships": {
+                "customForm": {
+                    "data": null
+                },
+                "product": {
+                    "data": null
+                },
+                "reminderEmailTemplate": {
+                    "data": null
+                },
+                "program": {
+                    "data": null
+                },
+                "events": {
+                    "data": null
+                },
+                "facilities": {
+                    "data": null
+                },
+                "assignedFacilities": {
+                    "data": null
+                },
+                "termsAndConditions": {
+                    "data": null
+                },
+                "files": {
+                    "data": null
+                },
+                "eventTypeFees": {
+                    "data": null
+                },
+                "setupTaskAction": {
+                    "data": null
+                },
+                "takedownTaskAction": {
+                    "data": null
+                },
+                "resources": {
+                    "data": null
+                }
+            },
+            "links": {
+                "self": "http:\/\/api.daysmartrecreation.com\/api\/v1\/event-types\/16"
+            }
+        },
+        {
+            "type": "event-types",
+            "id": "11",
+            "attributes": {
+                "code": "11",
+                "name": "Ice Skating Event Package",
+                "color": "#0aecaa",
+                "custom_form_id": null,
+                "product_id": null,
+                "description": null,
+                "has_customer": true,
+                "has_team_home": false,
+                "has_team_away": false,
+                "has_roster": false,
+                "length": "03:00:00",
+                "active": true,
+                "member_app_display_name": null
+            },
+            "relationships": {
+                "customForm": {
+                    "data": null
+                },
+                "product": {
+                    "data": null
+                },
+                "reminderEmailTemplate": {
+                    "data": null
+                },
+                "program": {
+                    "data": null
+                },
+                "events": {
+                    "data": null
+                },
+                "facilities": {
+                    "data": null
+                },
+                "assignedFacilities": {
+                    "data": null
+                },
+                "termsAndConditions": {
+                    "data": null
+                },
+                "files": {
+                    "data": null
+                },
+                "eventTypeFees": {
+                    "data": null
+                },
+                "setupTaskAction": {
+                    "data": null
+                },
+                "takedownTaskAction": {
+                    "data": null
+                },
+                "resources": {
+                    "data": null
+                }
+            },
+            "links": {
+                "self": "http:\/\/api.daysmartrecreation.com\/api\/v1\/event-types\/11"
+            }
+        },
+        {
+            "type": "event-types",
+            "id": "8",
+            "attributes": {
+                "code": "8",
+                "name": "Internal Hold",
+                "color": "#004975",
+                "custom_form_id": null,
+                "product_id": null,
+                "description": null,
+                "has_customer": false,
+                "has_team_home": false,
+                "has_team_away": false,
+                "has_roster": false,
+                "length": "01:00:00",
+                "active": true,
+                "member_app_display_name": null
+            },
+            "relationships": {
+                "customForm": {
+                    "data": null
+                },
+                "product": {
+                    "data": null
+                },
+                "reminderEmailTemplate": {
+                    "data": null
+                },
+                "program": {
+                    "data": null
+                },
+                "events": {
+                    "data": null
+                },
+                "facilities": {
+                    "data": null
+                },
+                "assignedFacilities": {
+                    "data": null
+                },
+                "termsAndConditions": {
+                    "data": null
+                },
+                "files": {
+                    "data": null
+                },
+                "eventTypeFees": {
+                    "data": null
+                },
+                "setupTaskAction": {
+                    "data": null
+                },
+                "takedownTaskAction": {
+                    "data": null
+                },
+                "resources": {
+                    "data": null
+                }
+            },
+            "links": {
+                "self": "http:\/\/api.daysmartrecreation.com\/api\/v1\/event-types\/8"
+            }
+        },
+        {
+            "type": "event-types",
+            "id": "7",
+            "attributes": {
+                "code": "7",
+                "name": "Learn to Skate",
+                "color": "#50dcff",
+                "custom_form_id": null,
+                "product_id": null,
+                "description": null,
+                "has_customer": true,
+                "has_team_home": false,
+                "has_team_away": false,
+                "has_roster": true,
+                "length": "00:00:00",
+                "active": true,
+                "member_app_display_name": null
+            },
+            "relationships": {
+                "customForm": {
+                    "data": null
+                },
+                "product": {
+                    "data": null
+                },
+                "reminderEmailTemplate": {
+                    "data": null
+                },
+                "program": {
+                    "data": null
+                },
+                "events": {
+                    "data": null
+                },
+                "facilities": {
+                    "data": null
+                },
+                "assignedFacilities": {
+                    "data": null
+                },
+                "termsAndConditions": {
+                    "data": null
+                },
+                "files": {
+                    "data": null
+                },
+                "eventTypeFees": {
+                    "data": null
+                },
+                "setupTaskAction": {
+                    "data": null
+                },
+                "takedownTaskAction": {
+                    "data": null
+                },
+                "resources": {
+                    "data": null
+                }
+            },
+            "links": {
+                "self": "http:\/\/api.daysmartrecreation.com\/api\/v1\/event-types\/7"
+            }
+        },
+        {
+            "type": "event-types",
+            "id": "14",
+            "attributes": {
+                "code": "14",
+                "name": "Learn to Skate Specialty Class",
+                "color": "#1ffffb",
+                "custom_form_id": null,
+                "product_id": 10,
+                "description": null,
+                "has_customer": false,
+                "has_team_home": false,
+                "has_team_away": false,
+                "has_roster": true,
+                "length": "00:30:00",
+                "active": true,
+                "member_app_display_name": null
+            },
+            "relationships": {
+                "customForm": {
+                    "data": null
+                },
+                "product": {
+                    "data": null
+                },
+                "reminderEmailTemplate": {
+                    "data": null
+                },
+                "program": {
+                    "data": null
+                },
+                "events": {
+                    "data": null
+                },
+                "facilities": {
+                    "data": null
+                },
+                "assignedFacilities": {
+                    "data": null
+                },
+                "termsAndConditions": {
+                    "data": null
+                },
+                "files": {
+                    "data": null
+                },
+                "eventTypeFees": {
+                    "data": null
+                },
+                "setupTaskAction": {
+                    "data": null
+                },
+                "takedownTaskAction": {
+                    "data": null
+                },
+                "resources": {
+                    "data": null
+                }
+            },
+            "links": {
+                "self": "http:\/\/api.daysmartrecreation.com\/api\/v1\/event-types\/14"
+            }
+        },
+        {
+            "type": "event-types",
+            "id": "L",
+            "attributes": {
+                "code": "L",
+                "name": "Locker Room",
+                "color": "#ffc600",
+                "custom_form_id": null,
+                "product_id": null,
+                "description": null,
+                "has_customer": false,
+                "has_team_home": true,
+                "has_team_away": true,
+                "has_roster": false,
+                "length": "00:00:00",
+                "active": true,
+                "member_app_display_name": null
+            },
+            "relationships": {
+                "customForm": {
+                    "data": null
+                },
+                "product": {
+                    "data": null
+                },
+                "reminderEmailTemplate": {
+                    "data": null
+                },
+                "program": {
+                    "data": null
+                },
+                "events": {
+                    "data": null
+                },
+                "facilities": {
+                    "data": null
+                },
+                "assignedFacilities": {
+                    "data": null
+                },
+                "termsAndConditions": {
+                    "data": null
+                },
+                "files": {
+                    "data": null
+                },
+                "eventTypeFees": {
+                    "data": null
+                },
+                "setupTaskAction": {
+                    "data": null
+                },
+                "takedownTaskAction": {
+                    "data": null
+                },
+                "resources": {
+                    "data": null
+                }
+            },
+            "links": {
+                "self": "http:\/\/api.daysmartrecreation.com\/api\/v1\/event-types\/L"
+            }
+        },
+        {
+            "type": "event-types",
+            "id": "12",
+            "attributes": {
+                "code": "12",
+                "name": "Private Drop-In",
+                "color": "#196dff",
+                "custom_form_id": null,
+                "product_id": 11,
+                "description": null,
+                "has_customer": false,
+                "has_team_home": true,
+                "has_team_away": false,
+                "has_roster": false,
+                "length": "01:00:00",
+                "active": true,
+                "member_app_display_name": null
+            },
+            "relationships": {
+                "customForm": {
+                    "data": null
+                },
+                "product": {
+                    "data": null
+                },
+                "reminderEmailTemplate": {
+                    "data": null
+                },
+                "program": {
+                    "data": null
+                },
+                "events": {
+                    "data": null
+                },
+                "facilities": {
+                    "data": null
+                },
+                "assignedFacilities": {
+                    "data": null
+                },
+                "termsAndConditions": {
+                    "data": null
+                },
+                "files": {
+                    "data": null
+                },
+                "eventTypeFees": {
+                    "data": null
+                },
+                "setupTaskAction": {
+                    "data": null
+                },
+                "takedownTaskAction": {
+                    "data": null
+                },
+                "resources": {
+                    "data": null
+                }
+            },
+            "links": {
+                "self": "http:\/\/api.daysmartrecreation.com\/api\/v1\/event-types\/12"
+            }
+        },
+        {
+            "type": "event-types",
+            "id": "13",
+            "attributes": {
+                "code": "13",
+                "name": "Private Hockey Coaches Ice",
+                "color": "#90dd45",
+                "custom_form_id": null,
+                "product_id": 12,
+                "description": null,
+                "has_customer": false,
+                "has_team_home": false,
+                "has_team_away": false,
+                "has_roster": true,
+                "length": "01:00:00",
+                "active": true,
+                "member_app_display_name": null
+            },
+            "relationships": {
+                "customForm": {
+                    "data": null
+                },
+                "product": {
+                    "data": null
+                },
+                "reminderEmailTemplate": {
+                    "data": null
+                },
+                "program": {
+                    "data": null
+                },
+                "events": {
+                    "data": null
+                },
+                "facilities": {
+                    "data": null
+                },
+                "assignedFacilities": {
+                    "data": null
+                },
+                "termsAndConditions": {
+                    "data": null
+                },
+                "files": {
+                    "data": null
+                },
+                "eventTypeFees": {
+                    "data": null
+                },
+                "setupTaskAction": {
+                    "data": null
+                },
+                "takedownTaskAction": {
+                    "data": null
+                },
+                "resources": {
+                    "data": null
+                }
+            },
+            "links": {
+                "self": "http:\/\/api.daysmartrecreation.com\/api\/v1\/event-types\/13"
+            }
+        },
+        {
+            "type": "event-types",
+            "id": "10",
+            "attributes": {
+                "code": "10",
+                "name": "Public Skating",
+                "color": "#ff0000",
+                "custom_form_id": null,
+                "product_id": 8,
+                "description": null,
+                "has_customer": false,
+                "has_team_home": false,
+                "has_team_away": false,
+                "has_roster": true,
+                "length": "02:00:00",
+                "active": true,
+                "member_app_display_name": null
+            },
+            "relationships": {
+                "customForm": {
+                    "data": null
+                },
+                "product": {
+                    "data": null
+                },
+                "reminderEmailTemplate": {
+                    "data": null
+                },
+                "program": {
+                    "data": null
+                },
+                "events": {
+                    "data": null
+                },
+                "facilities": {
+                    "data": null
+                },
+                "assignedFacilities": {
+                    "data": null
+                },
+                "termsAndConditions": {
+                    "data": null
+                },
+                "files": {
+                    "data": null
+                },
+                "eventTypeFees": {
+                    "data": null
+                },
+                "setupTaskAction": {
+                    "data": null
+                },
+                "takedownTaskAction": {
+                    "data": null
+                },
+                "resources": {
+                    "data": null
+                }
+            },
+            "links": {
+                "self": "http:\/\/api.daysmartrecreation.com\/api\/v1\/event-types\/10"
+            }
+        },
+        {
+            "type": "event-types",
+            "id": "r",
+            "attributes": {
+                "code": "r",
+                "name": "Rental",
+                "color": "#ff7300",
+                "custom_form_id": null,
+                "product_id": null,
+                "description": null,
+                "has_customer": true,
+                "has_team_home": false,
+                "has_team_away": false,
+                "has_roster": false,
+                "length": "01:00:00",
+                "active": true,
+                "member_app_display_name": "Rental"
+            },
+            "relationships": {
+                "customForm": {
+                    "data": null
+                },
+                "product": {
+                    "data": null
+                },
+                "reminderEmailTemplate": {
+                    "data": null
+                },
+                "program": {
+                    "data": null
+                },
+                "events": {
+                    "data": null
+                },
+                "facilities": {
+                    "data": null
+                },
+                "assignedFacilities": {
+                    "data": null
+                },
+                "termsAndConditions": {
+                    "data": null
+                },
+                "files": {
+                    "data": null
+                },
+                "eventTypeFees": {
+                    "data": null
+                },
+                "setupTaskAction": {
+                    "data": null
+                },
+                "takedownTaskAction": {
+                    "data": null
+                },
+                "resources": {
+                    "data": null
+                }
+            },
+            "links": {
+                "self": "http:\/\/api.daysmartrecreation.com\/api\/v1\/event-types\/r"
+            }
+        },
+        {
+            "type": "event-types",
+            "id": "18",
+            "attributes": {
+                "code": "18",
+                "name": "SAFSC Rental",
+                "color": "#ff00e9",
+                "custom_form_id": null,
+                "product_id": null,
+                "description": null,
+                "has_customer": true,
+                "has_team_home": false,
+                "has_team_away": false,
+                "has_roster": false,
+                "length": "00:00:00",
+                "active": true,
+                "member_app_display_name": null
+            },
+            "relationships": {
+                "customForm": {
+                    "data": null
+                },
+                "product": {
+                    "data": null
+                },
+                "reminderEmailTemplate": {
+                    "data": null
+                },
+                "program": {
+                    "data": null
+                },
+                "events": {
+                    "data": null
+                },
+                "facilities": {
+                    "data": null
+                },
+                "assignedFacilities": {
+                    "data": null
+                },
+                "termsAndConditions": {
+                    "data": null
+                },
+                "files": {
+                    "data": null
+                },
+                "eventTypeFees": {
+                    "data": null
+                },
+                "setupTaskAction": {
+                    "data": null
+                },
+                "takedownTaskAction": {
+                    "data": null
+                },
+                "resources": {
+                    "data": null
+                }
+            },
+            "links": {
+                "self": "http:\/\/api.daysmartrecreation.com\/api\/v1\/event-types\/18"
+            }
+        },
+        {
+            "type": "event-types",
+            "id": "21",
+            "attributes": {
+                "code": "21",
+                "name": "Seminars",
+                "color": "#ff0000",
+                "custom_form_id": null,
+                "product_id": 50,
+                "description": null,
+                "has_customer": false,
+                "has_team_home": false,
+                "has_team_away": false,
+                "has_roster": true,
+                "length": "00:00:00",
+                "active": true,
+                "member_app_display_name": null
+            },
+            "relationships": {
+                "customForm": {
+                    "data": null
+                },
+                "product": {
+                    "data": null
+                },
+                "reminderEmailTemplate": {
+                    "data": null
+                },
+                "program": {
+                    "data": null
+                },
+                "events": {
+                    "data": null
+                },
+                "facilities": {
+                    "data": null
+                },
+                "assignedFacilities": {
+                    "data": null
+                },
+                "termsAndConditions": {
+                    "data": null
+                },
+                "files": {
+                    "data": null
+                },
+                "eventTypeFees": {
+                    "data": null
+                },
+                "setupTaskAction": {
+                    "data": null
+                },
+                "takedownTaskAction": {
+                    "data": null
+                },
+                "resources": {
+                    "data": null
+                }
+            },
+            "links": {
+                "self": "http:\/\/api.daysmartrecreation.com\/api\/v1\/event-types\/21"
+            }
+        },
+        {
+            "type": "event-types",
+            "id": "22",
+            "attributes": {
+                "code": "22",
+                "name": "Stick & Puck",
+                "color": "#4ad3ff",
+                "custom_form_id": null,
+                "product_id": 11,
+                "description": null,
+                "has_customer": false,
+                "has_team_home": false,
+                "has_team_away": false,
+                "has_roster": true,
+                "length": "01:00:00",
+                "active": true,
+                "member_app_display_name": null
+            },
+            "relationships": {
+                "customForm": {
+                    "data": null
+                },
+                "product": {
+                    "data": null
+                },
+                "reminderEmailTemplate": {
+                    "data": null
+                },
+                "program": {
+                    "data": null
+                },
+                "events": {
+                    "data": null
+                },
+                "facilities": {
+                    "data": null
+                },
+                "assignedFacilities": {
+                    "data": null
+                },
+                "termsAndConditions": {
+                    "data": null
+                },
+                "files": {
+                    "data": null
+                },
+                "eventTypeFees": {
+                    "data": null
+                },
+                "setupTaskAction": {
+                    "data": null
+                },
+                "takedownTaskAction": {
+                    "data": null
+                },
+                "resources": {
+                    "data": null
+                }
+            },
+            "links": {
+                "self": "http:\/\/api.daysmartrecreation.com\/api\/v1\/event-types\/22"
+            }
+        }
+    ]
+}

@@ -123,7 +123,7 @@ class SyncManager:
                 "filter[start__lte]": end_str, "include": "eventType,summary,resource.facility"
             }
 
-            chap_codes = ["13", "9", "12", "6"]
+            chap_codes = ["6", "9", "12", "13"]
             for index, code in enumerate(chap_codes):
                 base_params[f"filter[or][{index}][eventType.code]"] = code
 

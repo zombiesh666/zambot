@@ -5,7 +5,7 @@ class PondStorage(BaseStorage):
     def _init_tables(self):
         with self._get_connection() as conn:
             conn.execute("""
-                CREATE TABLE IF NOT EXISTS pond_sessions_v2 (
+                CREATE TABLE IF NOT EXISTS pond_sessions_v3 (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     summary_name TEXT,
                     start_time TEXT,
@@ -21,6 +21,7 @@ class PondStorage(BaseStorage):
                     resource_name TEXT,
                     facility_name TEXT,
                     event_url TEXT,
+                    event_type TEXT,
                     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
                 );
             """)
@@ -29,17 +30,17 @@ class PondStorage(BaseStorage):
         if not flat_records:
             return
         with self._get_connection() as conn:
-            conn.execute("DELETE FROM pond_sessions_v2")
+            conn.execute("DELETE FROM pond_sessions_v3")
             conn.executemany("""
-                INSERT INTO pond_sessions_v2 (
+                INSERT INTO pond_sessions_v3 (
                     summary_name, start_time, end_time, length,
                     skaters_registered, skaters_open_slots, skaters_capacity,
                     goalies_registered, goalies_open_slots, goalies_capacity,
-                    registration_status, resource_name, facility_name, event_url, updated_at
+                    registration_status, resource_name, facility_name, event_url, event_type, updated_at
                 ) VALUES (
                     :summary_name, :start_time, :end_time, :length,
                     :skaters_registered, :skaters_open_slots, :skaters_capacity,
                     :goalies_registered, :goalies_open_slots, :goalies_capacity,
-                    :registration_status, :resource_name, :facility_name, :event_url, CURRENT_TIMESTAMP
+                    :registration_status, :resource_name, :facility_name, :event_url, :event_type, CURRENT_TIMESTAMP
                 )
             """, flat_records)

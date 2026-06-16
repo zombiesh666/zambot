@@ -43,7 +43,15 @@ class IceAndFieldParser(BaseParser):
 
             session_name = sum_attrs.get("name") or attr.get("desc") or attr.get("name") or "Unnamed Session"
 
-            # --- Length Parsing & Hours-to-Minutes Conversion ---
+            # --- Event Type Mapping ---
+            event_type_str = "unknown"
+            if et_id == "10":
+                event_type_str = "public"
+            elif et_id in ["12", "15", "16", "17"]:
+                event_type_str = "dropin"
+            elif et_id == "22":
+                event_type_str = "stickandpuck"
+
             raw_length = et_attrs.get("length") or attr.get("length", 0)
             length_minutes = 0
 
@@ -95,7 +103,8 @@ class IceAndFieldParser(BaseParser):
                 "registration_status": status,
                 "resource_name": rink_name,
                 "facility_name": facility_name,
-                "event_url": event_url
+                "event_url": event_url,
+                "event_type": event_type_str
             })
 
         return flat_records

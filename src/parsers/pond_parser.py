@@ -6,9 +6,6 @@ from src.parsers.base_parser import BaseParser
 
 class PondParser(BaseParser):
     def parse_html_payload(self, html_content: str, current_year: int) -> list[dict]:
-        """Scrapes the raw Shopify HTML to extract the core session parameters,
-        enforcing a strict rolling 31-day window filter.
-        """
         soup = BeautifulSoup(html_content, "html.parser")
         flat_records = []
 
@@ -62,6 +59,13 @@ class PondParser(BaseParser):
                 p_tag = item.find("p")
                 summary_name = p_tag.get_text(strip=True) if p_tag else "Unnamed Session"
 
+                # --- Event Type Mapping ---
+                event_type_str = "unknown"
+                if "BT" in summary_name or "PT" in summary_name:
+                    event_type_str = "stickandpuck"
+                elif "shinny" in summary_name.lower():
+                    event_type_str = "dropin"
+
                 start_time = ""
                 end_time = ""
                 length = 0
@@ -83,17 +87,14 @@ class PondParser(BaseParser):
                     s_dt = datetime.strptime(start_time, "%Y-%m-%dT%H:%M:%S")
                     e_dt = datetime.strptime(end_time, "%Y-%m-%dT%H:%M:%S")
 
-                    # Calculate raw difference
                     length = int((e_dt - s_dt).total_seconds() / 60)
                     if length < 0:
                         length += 24 * 60
 
-                    # Fix AM/PM crossover logic if the game exceeds 4 hours
                     if length > 240:
                         s_dt = s_dt - timedelta(hours=12)
                         start_time = s_dt.strftime("%Y-%m-%dT%H:%M:%S")
 
-                        # Recalculate true game length
                         length = int((e_dt - s_dt).total_seconds() / 60)
                         if length < 0:
                             length += 24 * 60
@@ -114,13 +115,13 @@ class PondParser(BaseParser):
                     "registration_status": "unknown",
                     "resource_name": resource_name,
                     "facility_name": "The Pond Hockey Club",
-                    "event_url": event_url
+                    "event_url": event_url,
+                    "event_type": event_type_str
                 })
 
         return flat_records
 
     def enrich_with_json(self, record: dict, json_payload: dict):
-        """Maps the detailed variant array JSON metrics directly onto the record."""
         product = json_payload.get("product", {})
         variants = product.get("variants", [])
 
