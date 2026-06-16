@@ -9,6 +9,7 @@ from src.storage.chaparral_storage import ChaparralStorage
 from src.parsers.pond_parser import PondParser
 from src.storage.pond_storage import PondStorage
 
+
 class SyncManager:
     def __init__(self, db_path: str):
         self.iaf_storage = IceAndFieldStorage(db_path)
@@ -52,7 +53,7 @@ class SyncManager:
                 "filter[start__lte]": end_str, "include": "eventType,summary,resource.facility"
             }
 
-            target_codes = ["10", "12", "15", "16", "17", "22"]
+            target_codes = ["10", "12", "15", "16", "17", "22", "g", "r"]
             for index, code in enumerate(target_codes):
                 base_params[f"filter[or][{index}][eventType.code]"] = code
 
@@ -64,7 +65,6 @@ class SyncManager:
                 params["page[number]"] = str(current_page)
 
                 response = None
-                # Robust 3-Attempt Retry Loop for pagination
                 for attempt in range(3):
                     try:
                         response = await client.get(base_url, params=params)
@@ -81,7 +81,6 @@ class SyncManager:
                         print(f"   ⚠️ Request error on page {current_page}: {e}")
                         await asyncio.sleep(2)
 
-                # Hard break if the server remains unresponsive after 3 attempts
                 if not response or response.status_code != 200:
                     print(f"❌ Failed to fetch page {current_page}. Stopping sequence.")
                     break
@@ -124,7 +123,7 @@ class SyncManager:
                 "filter[start__lte]": end_str, "include": "eventType,summary,resource.facility"
             }
 
-            chap_codes = ["13", "9", "12", "6"]
+            chap_codes = ["13", "g", "9", "12", "6", "r"]
             for index, code in enumerate(chap_codes):
                 base_params[f"filter[or][{index}][eventType.code]"] = code
 
@@ -136,7 +135,6 @@ class SyncManager:
                 params["page[number]"] = str(current_page)
 
                 response = None
-                # Robust 3-Attempt Retry Loop
                 for attempt in range(3):
                     try:
                         response = await client.get(base_url, params=params)
@@ -180,9 +178,14 @@ class SyncManager:
     async def sync_pond(self, base_url: str):
         custom_timeout = httpx.Timeout(timeout=10.0, read=30.0)
         async with httpx.AsyncClient(timeout=custom_timeout, follow_redirects=True) as client:
-            print(f"🔄 Pond: Fetching HTML target -> {base_url}")
+
+            # Cache-bust the HTML feed itself to ensure we see newly added schedule links
+            cb_html = int(datetime.now().timestamp())
+            busted_base_url = f"{base_url}?_cb={cb_html}"
+
+            print(f"🔄 Pond: Fetching HTML target -> {busted_base_url}")
             try:
-                response = await client.get(base_url)
+                response = await client.get(busted_base_url)
                 if response.status_code == 200:
                     current_year = datetime.now().year
                     flat_records = self.pond_parser.parse_html_payload(response.text, current_year)
@@ -197,7 +200,11 @@ class SyncManager:
 
                                 for attempt in range(3):
                                     try:
-                                        j_res = await client.get(json_url)
+                                        # Force Shopify edge nodes to pull fresh origin inventory data
+                                        cb_json = int(datetime.now().timestamp() * 1000) + attempt
+                                        busted_json_url = f"{json_url}?_cb={cb_json}"
+
+                                        j_res = await client.get(busted_json_url)
                                         if j_res.status_code == 200:
                                             self.pond_parser.enrich_with_json(record, j_res.json())
                                             fetched = True
@@ -210,7 +217,7 @@ class SyncManager:
                                         await asyncio.sleep(1)
                                     except Exception as e:
                                         if attempt == 2:
-                                            print(f"   ⚠️ Pond JSON Network Error ({json_url}): {e}")
+                                            print(f"   ⚠️ Pond JSON Network Error ({busted_json_url}): {e}")
                                         await asyncio.sleep(1)
 
                                 if not fetched:
