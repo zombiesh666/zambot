@@ -62,7 +62,7 @@ class SyncManager:
                     "filter[start__lte]": end_str, "include": "eventType,summary,resource.facility"
                 }
 
-                target_codes = ["10", "12", "15", "16", "17", "22", "g"]
+                target_codes = ["10", "12", "15", "16", "17", "22"]
                 for index, code in enumerate(target_codes):
                     base_params[f"filter[or][{index}][eventType.code]"] = code
 
@@ -128,7 +128,7 @@ class SyncManager:
                     "filter[start__lte]": end_str, "include": "eventType,summary,resource.facility"
                 }
 
-                chap_codes = ["6", "9", "12", "13", "g"]
+                chap_codes = ["6", "9", "12", "13"]
                 for index, code in enumerate(chap_codes):
                     base_params[f"filter[or][{index}][eventType.code]"] = code
 
