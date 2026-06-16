@@ -20,6 +20,7 @@ class ChaparralStorage(BaseStorage):
                     registration_status TEXT,
                     resource_name TEXT,
                     facility_name TEXT,
+                    event_url TEXT,
                     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
                 );
             """)
@@ -33,11 +34,11 @@ class ChaparralStorage(BaseStorage):
                     id, summary_name, start_time, end_time, length,
                     skaters_registered, skaters_open_slots, skaters_capacity,
                     goalies_registered, goalies_open_slots, goalies_capacity,
-                    registration_status, resource_name, facility_name, updated_at
+                    registration_status, resource_name, facility_name, event_url, updated_at
                 ) VALUES (
                     :id, :summary_name, :start_time, :end_time, :length,
                     :skaters_registered, :skaters_open_slots, :skaters_capacity,
                     :goalies_registered, :goalies_open_slots, :goalies_capacity,
-                    :registration_status, :resource_name, :facility_name, CURRENT_TIMESTAMP
+                    :registration_status, :resource_name, :facility_name, :event_url, CURRENT_TIMESTAMP
                 )
             """, flat_records)

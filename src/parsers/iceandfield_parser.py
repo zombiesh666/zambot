@@ -58,11 +58,22 @@ class IceAndFieldParser(BaseParser):
 
             status = sum_attrs.get("registration_status") or attr.get("registration_status", "unknown")
 
+            start_time_iso = attr.get("start") or ""
+            end_time_iso = attr.get("end") or ""
+
+            start_date = start_time_iso.split("T")[0] if "T" in start_time_iso else start_time_iso.split(" ")[0]
+            end_date = end_time_iso.split("T")[0] if "T" in end_time_iso else end_time_iso.split(" ")[0]
+            if not end_date: end_date = start_date
+
+            event_url = ""
+            if start_date and et_id:
+                event_url = f"https://apps.daysmartrecreation.com/dash/x/#/online/iceandfield/calendar?location=1&start={start_date}&end={end_date}&event_type={et_id}"
+
             flat_records.append({
                 "id": item_id,
                 "summary_name": session_name,
-                "start_time": attr.get("start") or "",
-                "end_time": attr.get("end") or "",
+                "start_time": start_time_iso,
+                "end_time": end_time_iso,
                 "length": length,
                 "skaters_registered": registered_count,
                 "skaters_open_slots": open_slots,
@@ -72,7 +83,8 @@ class IceAndFieldParser(BaseParser):
                 "goalies_capacity": 0,
                 "registration_status": status,
                 "resource_name": rink_name,
-                "facility_name": facility_name
+                "facility_name": facility_name,
+                "event_url": event_url
             })
 
         return flat_records

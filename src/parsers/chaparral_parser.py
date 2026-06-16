@@ -47,7 +47,6 @@ class ChaparralParser(BaseParser):
 
             session_name = sum_attrs.get("name") or attr.get("desc") or attr.get("name") or "Unnamed Session"
 
-            # --- Length Parsing & Hours-to-Minutes Conversion ---
             raw_length = et_attrs.get("length") or attr.get("length", 0)
             length_minutes = 0
 
@@ -61,7 +60,6 @@ class ChaparralParser(BaseParser):
                 except (ValueError, TypeError):
                     length_minutes = 0
 
-            # --- Target Open Slots from specific JSON key ---
             open_slots = sum_attrs.get("open_slots")
             if open_slots is None:
                 open_slots = attr.get("open_slots", 0)
@@ -69,19 +67,26 @@ class ChaparralParser(BaseParser):
             registered_count = sum_attrs.get("registered_count") or 0
             composite_capacity = sum_attrs.get("composite_capacity") or 0
 
-            # --- Dynamic Registration Status & Past Event Gate ---
             start_time_iso = attr.get("start") or ""
+            end_time_iso = attr.get("end") or ""
             status = sum_attrs.get("registration_status") or attr.get("registration_status", "unknown")
 
             if start_time_iso and start_time_iso < now_iso:
                 status = "closed"
 
-            # --- Grouping Logic to Merge Goalie & Player Events ---
+            # Parse URL Strings
+            start_date = start_time_iso.split("T")[0] if "T" in start_time_iso else start_time_iso.split(" ")[0]
+            end_date = end_time_iso.split("T")[0] if "T" in end_time_iso else end_time_iso.split(" ")[0]
+            if not end_date: end_date = start_date
+
+            event_url = ""
+            if start_date and et_id:
+                event_url = f"https://apps.daysmartrecreation.com/dash/x/#/online/chaparralice/calendar?location=1&start={start_date}&end={end_date}&event_type={et_id}"
+
             key = f"{start_time_iso}_{rink_name}_{length_minutes}"
             is_goalie = "goalie" in session_name.lower()
 
             if key not in grouped_events:
-                # Strip out the modifiers to create a clean universal summary name
                 clean_name = session_name.replace(" Goalie", "").replace(" Player", "").replace(" goalie", "").replace(
                     " player", "")
 
@@ -89,7 +94,7 @@ class ChaparralParser(BaseParser):
                     "id": item_id,
                     "summary_name": clean_name,
                     "start_time": start_time_iso,
-                    "end_time": attr.get("end") or "",
+                    "end_time": end_time_iso,
                     "length": length_minutes,
                     "skaters_registered": 0,
                     "skaters_open_slots": 0,
@@ -99,10 +104,10 @@ class ChaparralParser(BaseParser):
                     "goalies_capacity": 0,
                     "registration_status": status,
                     "resource_name": rink_name,
-                    "facility_name": facility_name
+                    "facility_name": facility_name,
+                    "event_url": event_url
                 }
 
-            # Inject the data into the appropriate Skater or Goalie slot columns
             if is_goalie:
                 grouped_events[key]["goalies_registered"] = registered_count
                 grouped_events[key]["goalies_open_slots"] = open_slots
