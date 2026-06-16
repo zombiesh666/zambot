@@ -26,8 +26,6 @@
         .pill-group { background-color: var(--bg-card); border: 1px solid var(--border); padding: 0.25rem; border-radius: 8px; display: flex; gap: 0.25rem; flex-wrap: wrap; }
         .pill { background: none; border: none; color: var(--text-muted); padding: 0.5rem 1rem; font-size: 0.75rem; font-weight: 600; border-radius: 6px; cursor: pointer; transition: all 0.15s; }
         .pill.active { background-color: var(--accent-blue); color: #fff; }
-        .search-box { background-color: var(--bg-card); border: 1px solid var(--border); color: var(--text-main); padding: 0.6rem 1rem; border-radius: 8px; font-size: 0.85rem; width: 100%; max-width: 360px; outline: none; }
-        .search-box:focus { border-color: var(--accent-blue); }
 
         .date-section { margin-bottom: 2.5rem; }
         .date-header { font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); margin-bottom: 1rem; display: flex; align-items: center; gap: 1rem; }
@@ -46,8 +44,6 @@
         .badge-gold { background: rgba(245, 158, 11, 0.1); color: var(--accent-gold); border: 1px solid rgba(245, 158, 11, 0.2); }
         .badge-silver { background: rgba(148, 163, 184, 0.1); color: var(--text-main); border: 1px solid rgba(148, 163, 184, 0.2); }
         .badge-chaparral { background: rgba(37, 99, 235, 0.1); color: #60a5fa; border: 1px solid rgba(37, 99, 235, 0.2); }
-
-        /* Updated Red Badge Shades for Pond & Barn */
         .badge-barn { background: rgba(220, 38, 38, 0.1); color: #ef4444; border: 1px solid rgba(220, 38, 38, 0.2); }
         .badge-pond-rink { background: rgba(185, 28, 28, 0.1); color: #f87171; border: 1px solid rgba(185, 28, 28, 0.2); }
 
@@ -62,7 +58,6 @@
         .status-pill { padding: 0.35rem 0.75rem; font-size: 0.7rem; font-weight: 700; border-radius: 20px; border: 1px solid transparent; }
         .status-open { background: rgba(16, 185, 129, 0.1); color: var(--status-open); border-color: rgba(16, 185, 129, 0.2); }
         .status-full { background: rgba(244, 63, 94, 0.1); color: var(--status-full); border-color: rgba(244, 63, 94, 0.2); }
-        /* New Status State Colors */
         .status-closed { background: rgba(148, 163, 184, 0.1); color: #94a3b8; border-color: rgba(148, 163, 184, 0.2); }
         .status-progress { background: rgba(56, 189, 248, 0.1); color: #38bdf8; border-color: rgba(56, 189, 248, 0.2); }
         .status-unknown { background: rgba(148, 163, 184, 0.1); color: var(--text-muted); border-color: rgba(148, 163, 184, 0.2); }
@@ -86,13 +81,19 @@
 
     <main>
         <section class="toolbar">
-            <div class="pill-group">
-                <button class="pill active" onclick="filterScope('All', this)">All Sessions</button>
+            <div class="pill-group" id="scope-filters">
+                <button class="pill active" onclick="filterScope('All', this)">All Rinks</button>
                 <button class="pill" onclick="filterScope('Crossover', this)">Crossover</button>
                 <button class="pill" onclick="filterScope('Chaparral', this)">Chaparral Ice</button>
                 <button class="pill" onclick="filterScope('The Pond', this)">The Pond</button>
             </div>
-            <input type="text" class="search-box" id="searchBox" placeholder="Filter by type (Drop-In, Stick & Puck)..." oninput="handleSearch()">
+
+            <div class="pill-group" id="type-filters">
+                <button class="pill active" onclick="filterType('All', this)">All Types</button>
+                <button class="pill" onclick="filterType('Drop-In', this)">Drop-In</button>
+                <button class="pill" onclick="filterType('Stick & Puck', this)">Stick & Puck</button>
+                <button class="pill" onclick="filterType('Public', this)">Public Skate</button>
+            </div>
         </section>
 
         <section id="scheduleView"></section>
@@ -100,8 +101,8 @@
 
     <script>
         let rawSessions = [];
-        let activeFilter = 'All';
-        let searchQuery = '';
+        let activeScope = 'All';
+        let activeType = 'All';
 
         async function fetchSessions() {
             const container = document.getElementById('scheduleView');
@@ -125,25 +126,33 @@
                 const eventDate = s.start_time ? s.start_time.split('T')[0] : '';
                 if (eventDate < todayStr) return false;
 
+                // 1. Evaluate Arena / Scope Filter
                 let matchesScope = false;
-                if (activeFilter === 'All') {
+                if (activeScope === 'All') {
                     matchesScope = true;
-                } else if (activeFilter === 'Chaparral') {
+                } else if (activeScope === 'Chaparral') {
                     matchesScope = s.facility_name && s.facility_name.toLowerCase().includes('chaparral');
-                } else if (activeFilter === 'The Pond') {
+                } else if (activeScope === 'The Pond') {
                     matchesScope = s.facility_name && s.facility_name.toLowerCase().includes('pond');
-                } else if (activeFilter === 'Crossover') {
+                } else if (activeScope === 'Crossover') {
                     matchesScope = s.resource_name && (s.resource_name.includes('Gold') || s.resource_name.includes('Silver'));
                 } else {
-                    matchesScope = s.resource_name === activeFilter;
+                    matchesScope = s.resource_name === activeScope;
                 }
 
-                const matchesSearch = !searchQuery ||
-                    (s.summary_name && s.summary_name.toLowerCase().includes(searchQuery)) ||
-                    (s.resource_name && s.resource_name.toLowerCase().includes(searchQuery)) ||
-                    (s.facility_name && s.facility_name.toLowerCase().includes(searchQuery));
+                // 2. Evaluate Event Type Filter
+                let matchesType = false;
+                if (activeType === 'All') {
+                    matchesType = true;
+                } else if (activeType === 'Drop-In') {
+                    matchesType = s.event_type === 'dropin';
+                } else if (activeType === 'Stick & Puck') {
+                    matchesType = s.event_type === 'stickandpuck';
+                } else if (activeType === 'Public') {
+                    matchesType = s.event_type === 'public';
+                }
 
-                return matchesScope && matchesSearch;
+                return matchesScope && matchesType;
             });
 
             if (filtered.length === 0) {
@@ -173,7 +182,6 @@
                     const rName = s.resource_name || 'Unknown Rink';
                     const fName = s.facility_name || 'Unknown Facility';
 
-                    // Assign Resource Badges
                     let badgeClass = 'badge-silver';
                     if (fName.toLowerCase().includes('chaparral')) {
                         badgeClass = 'badge-chaparral';
@@ -193,7 +201,6 @@
                     const goalieOpen = s.goalies_open_slots !== undefined ? s.goalies_open_slots : 0;
                     const goalieCap = s.goalies_capacity !== undefined ? s.goalies_capacity : 0;
 
-                    // Unified Status Logic
                     let statusClass = 'status-unknown';
                     let statusText = 'Unknown';
 
@@ -280,14 +287,16 @@
         }
 
         function filterScope(scope, element) {
-            document.querySelectorAll('.pill').forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('#scope-filters .pill').forEach(btn => btn.classList.remove('active'));
             element.classList.add('active');
-            activeFilter = scope;
+            activeScope = scope;
             renderAgenda();
         }
 
-        function handleSearch() {
-            searchQuery = document.getElementById('searchBox').value.toLowerCase().trim();
+        function filterType(type, element) {
+            document.querySelectorAll('#type-filters .pill').forEach(btn => btn.classList.remove('active'));
+            element.classList.add('active');
+            activeType = type;
             renderAgenda();
         }
 
