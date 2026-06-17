@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   zambot-app:
     build: .
@@ -23,20 +21,19 @@ services:
       - ~/zambot/Caddyfile:/etc/caddy/Caddyfile
       - caddy_data:/data
       - caddy_config:/config
-      # Shared log volume for GoAccess to read
       - caddy_logs:/var/log/caddy
     depends_on:
       - zambot-app
 
   goaccess:
-    image: allinone/goaccess
+    # 👉 FIX: Switched to the official community image
+    image: goaccess/goaccess:latest
     container_name: zambot-analytics
     restart: always
     environment:
       - GOACCESS_CUSTOM_COMMAND=--log-format=CADDY
     volumes:
       - caddy_logs:/srv/logs:ro
-      # Outputs a beautiful static report file right into your data directory
       - ~/zambot/data:/srv/report
     command: goaccess /srv/logs/access.log -o /srv/report/stats.html --real-time-html --log-format=CADDY
 
