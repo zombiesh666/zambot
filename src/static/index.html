@@ -26,7 +26,7 @@
             background-color: var(--bg-main);
             color: var(--text-main);
             font-family: 'Chakra Petch', sans-serif;
-            padding-bottom: 5rem; /* Increased to give footer breathing room */
+            padding-bottom: 5rem;
             -webkit-font-smoothing: antialiased;
         }
 
@@ -106,6 +106,7 @@
         .status-progress { background: rgba(56, 189, 248, 0.1); color: #38bdf8; border-color: rgba(56, 189, 248, 0.3); }
 
         .state-msg { text-align: center; padding: 5rem 1rem; color: var(--text-muted); font-size: 1rem; text-transform: uppercase; letter-spacing: 0.1em; }
+        .empty-day-msg { text-align: center; padding: 3rem 1rem; color: var(--text-muted); font-size: 1rem; letter-spacing: 0.05em; text-transform: uppercase; }
         .spinner { width: 2rem; height: 2rem; border: 3px solid var(--border); border-top-color: var(--text-main); border-radius: 50%; margin: 0 auto 1rem; animation: spin 0.8s linear infinite; }
         @keyframes spin { to { transform: rotate(360deg); } }
 
@@ -172,31 +173,41 @@
         <section id="scheduleView"></section>
     </main>
 
-    <!-- 👉 Clean, low-profile scoreboard styled footer container -->
     <footer>
         <p>&copy; 2026 Zambot. All Rights Reserved.</p>
     </footer>
 
     <script>
         let rawSessions = [];
+        // Tracks which date block groups are currently expanded by the user
+        let expandedBlocks = new Set(['accordion-block-1']);
 
-        async function fetchSessions() {
+        async function fetchSessions(isInitialLoad = false) {
             const container = document.getElementById('scheduleView');
-            container.innerHTML = '<div class="state-msg"><div class="spinner"></div>Loading Data Feed...</div>';
+            if (isInitialLoad) {
+                container.innerHTML = '<div class="state-msg"><div class="spinner"></div>Loading Data Feed...</div>';
+            }
             try {
                 const res = await fetch('/sessions');
                 if (!res.ok) throw new Error('Data drop offline');
                 rawSessions = await res.json();
                 renderAgenda();
             } catch (err) {
-                container.innerHTML = `<div class="state-msg">❌ Error loading records: ${err.message}</div>`;
+                if (isInitialLoad) {
+                    container.innerHTML = `<div class="state-msg">❌ Error loading records: ${err.message}</div>`;
+                }
             }
         }
 
         function toggleAccordion(elementId) {
             const container = document.getElementById(elementId);
-            if (container) {
-                container.classList.toggle('open');
+            if (!container) return;
+
+            container.classList.toggle('open');
+            if (container.classList.contains('open')) {
+                expandedBlocks.add(elementId);
+            } else {
+                expandedBlocks.delete(elementId);
             }
         }
 
@@ -231,7 +242,7 @@
                 const eventDate = s.start_time ? s.start_time.split('T')[0] : '';
                 if (eventDate < todayStr) return false;
 
-                const nowTime = new Date().getTime();
+                const nowTime = now.getTime();
                 const endTime = s.end_time ? new Date(s.end_time).getTime() : 0;
                 const feedStatus = s.registration_status ? s.registration_status.toLowerCase() : '';
 
@@ -252,6 +263,7 @@
                     isSpotsFull = isGoaliesFull;
                 }
 
+                // Automation Condition: Drops the event off the list the absolute split-second its calendar time end is exceeded
                 const isEndTimePassed = endTime > 0 && nowTime > endTime;
                 const isClosedFeed = feedStatus === 'closed';
 
@@ -262,12 +274,11 @@
                 return true;
             });
 
-            if (filtered.length === 0) {
-                container.innerHTML = '<div class="state-msg">📭 No upcoming hockey sessions found.</div>';
-                return;
-            }
-
+            // Enforce default persistence targets so Today and Tomorrow columns never get stripped from the template grid
             const groups = {};
+            groups[todayStr] = [];
+            groups[tomorrowStr] = [];
+
             filtered.forEach(s => {
                 const dateKey = s.start_time ? s.start_time.split('T')[0] : 'Unknown Date';
                 if (!groups[dateKey]) groups[dateKey] = [];
@@ -278,136 +289,152 @@
             let uniqueIdIndex = 0;
 
             Object.keys(groups).sort().forEach(date => {
+                // Ignore downstream upcoming days if their respective sub-arrays are completely cleaned out
+                if (date !== todayStr && date !== tomorrowStr && groups[date].length === 0) {
+                    return;
+                }
+
                 uniqueIdIndex++;
                 const blockId = `accordion-block-${uniqueIdIndex}`;
 
                 let displayHeader = date;
-                let isAutoOpen = false;
                 let dateBadgeStr = '';
 
                 if (date !== 'Unknown Date') {
                     const parts = date.split('-');
                     const dateObj = new Date(Date.UTC(parts[0], parts[1] - 1, parts[2]));
                     displayHeader = dateObj.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric', timeZone: 'UTC' });
-
                     dateBadgeStr = dateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' }) + ', ';
 
                     if (date === todayStr) {
                         displayHeader = 'Today';
-                        isAutoOpen = true;
                     } else if (date === tomorrowStr) {
                         displayHeader = 'Tomorrow';
                     }
                 }
 
+                const isOpen = expandedBlocks.has(blockId);
+
                 htmlString += `
-                    <div class="date-accordion-block ${isAutoOpen ? 'open' : ''}" id="${blockId}">
+                    <div class="date-accordion-block ${isOpen ? 'open' : ''}" id="${blockId}">
                         <button class="date-accordion-trigger" onclick="toggleAccordion('${blockId}')">
                             <span>${displayHeader}</span>
                             <span class="accordion-arrow">▼</span>
                         </button>
                         <div class="date-accordion-content">
+                `;
+
+                // Render placeholder notice block if the panel contains zero active listings
+                if (groups[date].length === 0) {
+                    const lowCaseDay = displayHeader.toLowerCase();
+                    htmlString += `<div class="empty-day-msg">📭 No remaining sessions scheduled for ${lowCaseDay}</div>`;
+                } else {
+                    htmlString += `
                             <div class="table-wrapper">
                                 <table class="zambot-table">
                                     <tbody>
-                `;
+                    `;
 
-                groups[date].forEach(s => {
-                    const typeDisplay = formatType(s.event_type, s.summary_name);
-                    const rinkDisplay = formatRink(s.facility_name, s.resource_name);
-                    let rName = s.resource_name || 'Unknown Rink';
+                    groups[date].forEach(s => {
+                        const typeDisplay = formatType(s.event_type, s.summary_name);
+                        const rinkDisplay = formatRink(s.facility_name, s.resource_name);
+                        let rName = s.resource_name || 'Unknown Rink';
 
-                    let typeIcon = '📅';
-                    if (typeDisplay === 'Drop-In') typeIcon = '🚨';
-                    else if (typeDisplay === 'Stick & Puck') typeIcon = '🏒';
-                    else if (typeDisplay === 'Public Skate') typeIcon = '⛸️';
+                        let typeIcon = '📅';
+                        if (typeDisplay === 'Drop-In') typeIcon = '🚨';
+                        else if (typeDisplay === 'Stick & Puck') typeIcon = '🏒';
+                        else if (typeDisplay === 'Public Skate') typeIcon = '⛸️';
 
-                    let badgeClass = 'badge-silver';
-                    if (rinkDisplay === 'Chaparral') {
-                        badgeClass = 'badge-chaparral';
-                    } else if (rinkDisplay === 'Pond') {
-                        if (rName.toLowerCase().includes('barn')) {
-                            badgeClass = 'badge-barn';
-                            rName = 'Barn side';
-                        } else {
-                            badgeClass = 'badge-pond-rink';
-                            rName = 'Pond side';
+                        let badgeClass = 'badge-silver';
+                        if (rinkDisplay === 'Chaparral') {
+                            badgeClass = 'badge-chaparral';
+                        } else if (rinkDisplay === 'Pond') {
+                            if (rName.toLowerCase().includes('barn')) {
+                                badgeClass = 'badge-barn';
+                                rName = 'Barn side';
+                            } else {
+                                badgeClass = 'badge-pond-rink';
+                                rName = 'Pond side';
+                            }
+                        } else if (rName.includes('Gold')) {
+                            badgeClass = 'badge-gold';
                         }
-                    } else if (rName.includes('Gold')) {
-                        badgeClass = 'badge-gold';
-                    }
 
-                    const skaterOpen = s.skaters_open_slots !== undefined ? s.skaters_open_slots : 0;
-                    const skaterCap = s.skaters_capacity !== undefined ? s.skaters_capacity : 0;
-                    const goalieOpen = s.goalies_open_slots !== undefined ? s.goalies_open_slots : 0;
-                    const goalieCap = s.goalies_capacity !== undefined ? s.goalies_capacity : 0;
+                        const skaterOpen = s.skaters_open_slots !== undefined ? s.skaters_open_slots : 0;
+                        const skaterCap = s.skaters_capacity !== undefined ? s.skaters_capacity : 0;
+                        const goalieOpen = s.goalies_open_slots !== undefined ? s.goalies_open_slots : 0;
+                        const goalieCap = s.goalies_capacity !== undefined ? s.goalies_capacity : 0;
 
-                    const skaterText = skaterOpen === 1 ? '1 Spot Left' : `${skaterOpen} Spots Left`;
-                    const goalieText = goalieOpen === 1 ? '1 Spot Left' : `${goalieOpen} Spots Left`;
+                        const skaterText = skaterOpen === 1 ? '1 Spot Left' : `${skaterOpen} Spots Left`;
+                        const goalieText = goalieOpen === 1 ? '1 Spot Left' : `${goalieOpen} Spots Left`;
 
-                    let capacityHTML = `<div class="cap-line">Skaters: <span>${skaterCap > 0 ? skaterText : 'N/A'}</span></div>`;
-                    if (goalieCap > 0) {
-                        capacityHTML += `<div class="cap-line">Goalies: <span>${goalieText}</span></div>`;
-                    }
+                        let capacityHTML = `<div class="cap-line">Skaters: <span>${skaterCap > 0 ? skaterText : 'N/A'}</span></div>`;
+                        if (goalieCap > 0) {
+                            capacityHTML += `<div class="cap-line">Goalies: <span>${goalieText}</span></div>`;
+                        }
 
-                    const nowTime = new Date().getTime();
-                    const startTime = s.start_time ? new Date(s.start_time).getTime() : 0;
-                    const endTime = s.end_time ? new Date(s.end_time).getTime() : 0;
+                        const startTime = s.start_time ? new Date(s.start_time).getTime() : 0;
+                        const endTime = s.end_time ? new Date(s.end_time).getTime() : 0;
 
-                    const feedStatus = s.registration_status ? s.registration_status.toLowerCase() : '';
-                    const isFullFeed = feedStatus === 'full';
+                        const feedStatus = s.registration_status ? s.registration_status.toLowerCase() : '';
+                        const isFullFeed = feedStatus === 'full';
 
-                    const isSkatersFull = skaterCap > 0 && skaterOpen <= 0;
-                    const isGoaliesFull = goalieCap > 0 && goalieOpen <= 0;
+                        const isSkatersFull = skaterCap > 0 && skaterOpen <= 0;
+                        const isGoaliesFull = goalieCap > 0 && goalieOpen <= 0;
 
-                    let isSpotsFull = false;
-                    if (skaterCap > 0 && goalieCap > 0) {
-                        isSpotsFull = isSkatersFull && isGoaliesFull;
-                    } else if (skaterCap > 0) {
-                        isSpotsFull = isSkatersFull;
-                    } else if (goalieCap > 0) {
-                        isSpotsFull = isGoaliesFull;
-                    }
+                        let isSpotsFull = false;
+                        if (skaterCap > 0 && goalieCap > 0) {
+                            isSpotsFull = isSkatersFull && isGoaliesFull;
+                        } else if (skaterCap > 0) {
+                            isSpotsFull = isSkatersFull;
+                        } else if (goalieCap > 0) {
+                            isSpotsFull = isGoaliesFull;
+                        }
 
-                    const isFull = isSpotsFull || isFullFeed;
-                    const isInProgress = !isFull && startTime > 0 && endTime > 0 && nowTime >= startTime && nowTime <= endTime;
-                    const isOpen = (!isInProgress && !isFull) || (feedStatus === 'open');
+                        const isFull = isSpotsFull || isFullFeed;
+                        const nowTime = now.getTime();
+                        const isInProgress = !isFull && startTime > 0 && endTime > 0 && nowTime >= startTime && nowTime <= endTime;
+                        const isOpenSession = (!isInProgress && !isFull) || (feedStatus === 'open');
 
-                    let statusClass = 'status-unknown';
-                    let statusText = 'Unknown';
+                        let statusClass = 'status-unknown';
+                        let statusText = 'Unknown';
 
-                    if (isFull) {
-                        statusText = 'Full'; statusClass = 'full';
-                    } else if (isInProgress) {
-                        statusText = 'Live'; statusClass = 'progress';
-                    } else if (isOpen) {
-                        statusText = 'Open'; statusClass = 'open';
-                    }
+                        if (isFull) {
+                            statusText = 'Full'; statusClass = 'full';
+                        } else if (isInProgress) {
+                            statusText = 'Live'; statusClass = 'progress';
+                        } else if (isOpenSession) {
+                            statusText = 'Open'; statusClass = 'open';
+                        }
 
-                    const timeBlock = `${dateBadgeStr}${formatTimeStr(s.start_time)} - ${formatTimeStr(s.end_time)}`;
-                    const clickAction = s.event_url ? `onclick="window.open('${s.event_url}', '_blank')"` : '';
+                        const timeBlock = `${dateBadgeStr}${formatTimeStr(s.start_time)} - ${formatTimeStr(s.end_time)}`;
+                        const clickAction = s.event_url ? `onclick="window.open('${s.event_url}', '_blank')"` : '';
+
+                        htmlString += `
+                            <tr ${clickAction}>
+                                <td class="col-type">
+                                    <span class="type-icon">${typeIcon}</span>
+                                    ${typeDisplay}
+                                </td>
+                                <td class="col-rink">${rinkDisplay}</td>
+                                <td class="col-resource"><span class="badge ${badgeClass}">${rName}</span></td>
+                                <td class="col-time">${timeBlock}</td>
+                                <td class="col-capacity">${capacityHTML}</td>
+                                <td class="col-status">
+                                    <span class="status-pill status-${statusClass}">${statusText}</span>
+                                </td>
+                            </tr>
+                        `;
+                    });
 
                     htmlString += `
-                        <tr ${clickAction}>
-                            <td class="col-type">
-                                <span class="type-icon">${typeIcon}</span>
-                                ${typeDisplay}
-                            </td>
-                            <td class="col-rink">${rinkDisplay}</td>
-                            <td class="col-resource"><span class="badge ${badgeClass}">${rName}</span></td>
-                            <td class="col-time">${timeBlock}</td>
-                            <td class="col-capacity">${capacityHTML}</td>
-                            <td class="col-status">
-                                <span class="status-pill status-${statusClass}">${statusText}</span>
-                            </td>
-                        </tr>
-                    `;
-                });
-
-                htmlString += `
                                     </tbody>
                                 </table>
                             </div>
+                    `;
+                }
+
+                htmlString += `
                         </div>
                     </div>
                 `;
@@ -426,7 +453,15 @@
             return `${displayHr}:${minutes} ${ampm}`;
         }
 
-        window.addEventListener('DOMContentLoaded', fetchSessions);
+        window.addEventListener('DOMContentLoaded', () => {
+            fetchSessions(true);
+            // Local Loop: Recalculates time delta blocks and live conditions every 30 seconds
+            setInterval(renderAgenda, 30000);
+            // Remote API Poller: Grabs full layout arrays from your backend server every 5 minutes
+            setInterval(() => {
+                fetchSessions(false);
+            }, 300000);
+        });
     </script>
 </body>
 </html>
