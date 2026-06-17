@@ -80,9 +80,6 @@ class ChaparralParser(BaseParser):
             end_time_iso = attr.get("end") or ""
             status = sum_attrs.get("registration_status") or attr.get("registration_status", "unknown")
 
-            if start_time_iso and start_time_iso < now_iso:
-                status = "closed"
-
             start_date = start_time_iso.split("T")[0] if "T" in start_time_iso else start_time_iso.split(" ")[0]
             end_date = end_time_iso.split("T")[0] if "T" in end_time_iso else end_time_iso.split(" ")[0]
             if not end_date: end_date = start_date
