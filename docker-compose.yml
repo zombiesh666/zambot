@@ -26,8 +26,8 @@ services:
       - zambot-app
 
   goaccess:
-    # 👉 FIX: Switched to the open linuxserver build to clear the pull error
-    image: lscr.io/linuxserver/goaccess:latest
+    # 👉 FIX: Switched to standard Docker Hub path for LinuxServer to pass the registry check
+    image: linuxserver/goaccess:latest
     container_name: zambot-analytics
     restart: always
     environment:
@@ -37,7 +37,6 @@ services:
     volumes:
       - caddy_logs:/cxlogs:ro
       - ~/zambot/data:/config
-    # Linuxserver uses a built-in UI daemon, or we can force the standard direct compile flag:
     command: goaccess /cxlogs/access.log -o /config/stats.html --real-time-html --log-format=CADDY
 
 volumes:
