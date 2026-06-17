@@ -69,10 +69,12 @@
         /* Dashboard Table Styling */
         .table-wrapper { width: 100%; }
         .zambot-table { width: 100%; border-collapse: collapse; text-align: left; font-size: 1rem; white-space: nowrap; }
-        .zambot-table td { padding: 1.15rem 1rem; border-bottom: 1px solid rgba(255,255,255,0.05); cursor: pointer; transition: background 0.1s; vertical-align: middle; }
+
+        .zambot-table tbody tr { cursor: pointer; transition: background-color 0.15s ease; }
+        .zambot-table td { padding: 1.15rem 1rem; border-bottom: 1px solid rgba(255,255,255,0.05); vertical-align: middle; }
 
         .zambot-table tbody tr:nth-child(even) { background-color: var(--bg-row-alt); }
-        .zambot-table tbody tr:hover td { background-color: var(--bg-row-hover); }
+        .zambot-table tbody tr:hover { background-color: var(--bg-row-hover); }
 
         .col-type { font-weight: 500; color: var(--text-main); font-size: 1.1rem; }
         .type-icon { display: inline-block; margin-right: 6px; font-size: 1.2em; }
@@ -107,7 +109,7 @@
             .branding .motto { font-size: 0.85rem; text-align: center; margin-bottom: 1rem; }
 
             .zambot-table, .zambot-table tbody { display: block; width: 100%; }
-            .zambot-table tr {
+            .zambot-table tbody tr {
                 display: grid;
                 grid-template-columns: 1fr auto;
                 grid-gap: 0.75rem;
@@ -115,10 +117,18 @@
                 border-bottom: 1px solid var(--border);
                 background-color: transparent;
             }
-            .zambot-table tr:last-child { border-bottom: none; }
-            .zambot-table tr:nth-child(even) { background-color: rgba(255, 255, 255, 0.01); }
+            .zambot-table tbody tr:last-child { border-bottom: none; }
 
-            .zambot-table td { padding: 0; border: none; display: flex; align-items: center; white-space: normal; }
+            /* Apply alt row color */
+            .zambot-table tbody tr:nth-child(even) { background-color: rgba(255, 255, 255, 0.01); }
+
+            /* FORCE hover state to apply and override the nth-child on mobile */
+            .zambot-table tbody tr:hover,
+            .zambot-table tbody tr:nth-child(even):hover {
+                background-color: var(--bg-row-hover);
+            }
+
+            .zambot-table td { padding: 0; border: none; display: flex; align-items: center; white-space: normal; background-color: transparent !important; }
 
             .zambot-table td.col-type { grid-column: 1 / 2; grid-row: 1; font-size: 1.2rem; }
             .zambot-table td.col-status { grid-column: 2 / 3; grid-row: 1; justify-content: flex-end; }
@@ -255,10 +265,8 @@
                     const dateObj = new Date(Date.UTC(parts[0], parts[1] - 1, parts[2]));
                     displayHeader = dateObj.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric', timeZone: 'UTC' });
 
-                    // Create short date identifier for inline bracket timestamps
                     dateBadgeStr = dateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' }) + ', ';
 
-                    // Open block automatically if it corresponds to Today, and rename header to Today
                     if (date === todayStr) {
                         displayHeader = 'Today';
                         isAutoOpen = true;
@@ -349,7 +357,6 @@
                         statusText = 'Open'; statusClass = 'open';
                     }
 
-                    // Prepend the short date format inside the inline bracket row output timestamp
                     const timeBlock = `${dateBadgeStr}${formatTimeStr(s.start_time)} - ${formatTimeStr(s.end_time)}`;
                     const clickAction = s.event_url ? `onclick="window.open('${s.event_url}', '_blank')"` : '';
 
