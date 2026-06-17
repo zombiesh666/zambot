@@ -21,25 +21,9 @@ services:
       - ~/zambot/Caddyfile:/etc/caddy/Caddyfile
       - caddy_data:/data
       - caddy_config:/config
-      - caddy_logs:/var/log/caddy
     depends_on:
       - zambot-app
-
-  goaccess:
-    # 👉 FIX: Switched to standard Docker Hub path for LinuxServer to pass the registry check
-    image: linuxserver/goaccess:latest
-    container_name: zambot-analytics
-    restart: always
-    environment:
-      - PUID=1000
-      - PGID=1000
-      - TZ=America/Chicago
-    volumes:
-      - caddy_logs:/cxlogs:ro
-      - ~/zambot/data:/config
-    command: goaccess /cxlogs/access.log -o /config/stats.html --real-time-html --log-format=CADDY
 
 volumes:
   caddy_data:
   caddy_config:
-  caddy_logs:

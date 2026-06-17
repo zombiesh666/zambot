@@ -1,6 +1,3 @@
 zambot.live, www.zambot.live {
-    log {
-        output file /var/log/caddy/access.log
-    }
     reverse_proxy zambot-app:8000
 }
