@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Zambot - Your Shift Starts Here</title>
-    <!-- Import Retro Scoreboard Font -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -193,10 +192,6 @@
 
             const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
 
-            const tomorrowObj = new Date();
-            tomorrowObj.setDate(now.getDate() + 1);
-            const tomorrowStr = `${tomorrowObj.getFullYear()}-${String(tomorrowObj.getMonth() + 1).padStart(2, '0')}-${String(tomorrowObj.getDate()).padStart(2, '0')}`;
-
             const filtered = rawSessions.filter(s => {
                 const eventDate = s.start_time ? s.start_time.split('T')[0] : '';
                 if (eventDate < todayStr) return false;
@@ -263,7 +258,9 @@
                     // Create short date identifier for inline bracket timestamps
                     dateBadgeStr = dateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' }) + ', ';
 
-                    if (date === todayStr || date === tomorrowStr) {
+                    // Open block automatically if it corresponds to Today, and rename header to Today
+                    if (date === todayStr) {
+                        displayHeader = 'Today';
                         isAutoOpen = true;
                     }
                 }
