@@ -8,7 +8,7 @@ from fastapi.staticfiles import StaticFiles
 from contextlib import asynccontextmanager
 from src.sync_manager import SyncManager
 from apscheduler.schedulers.background import BackgroundScheduler
-from apscheduler.triggers.cron import CronTrigger
+from apscheduler.triggers.interval import IntervalTrigger
 
 IS_DOCKER = os.path.exists('/.dockerenv')
 DB_DIR = "/app/data" if IS_DOCKER else "./data"
@@ -28,7 +28,7 @@ def load_config() -> dict:
 
 
 async def run_scheduled_sync():
-    print("CRON: Triggering automated 4:00 AM flat pipeline execution run...")
+    print("CRON: Running automated 5-minute interval synchronization loop...")
     config = load_config()
     await sync_manager.sync_all_feeds(config)
 
@@ -40,7 +40,8 @@ def scheduled_sync_wrapper():
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     scheduler = BackgroundScheduler(timezone="America/Chicago")
-    scheduler.add_job(scheduled_sync_wrapper, CronTrigger(hour=4, minute=0))
+    # 👉 Changed cron trigger to a rolling 5-minute interval trigger
+    scheduler.add_job(scheduled_sync_wrapper, IntervalTrigger(minutes=5))
     scheduler.start()
     yield
     scheduler.shutdown()

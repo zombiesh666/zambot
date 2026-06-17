@@ -20,7 +20,6 @@
 
         * { box-sizing: border-box; margin: 0; padding: 0; }
 
-        /* Apply the retro font globally */
         body {
             background-color: var(--bg-main);
             color: var(--text-main);
@@ -29,7 +28,6 @@
             -webkit-font-smoothing: antialiased;
         }
 
-        /* Updated Branding Header */
         header { padding: 2rem 1rem 1rem; max-width: 1200px; margin: 0 auto; }
         .branding { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 1.5rem; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 1rem; }
         .branding h1 { font-size: 2.25rem; font-weight: 700; letter-spacing: 0.05em; margin: 0; text-transform: uppercase; color: var(--text-main); }
@@ -45,7 +43,6 @@
         .zambot-table { width: 100%; border-collapse: collapse; text-align: left; font-size: 1rem; white-space: nowrap; }
         .zambot-table td { padding: 1.15rem 1rem; border-bottom: 1px solid rgba(255,255,255,0.05); cursor: pointer; transition: background 0.1s; vertical-align: middle; }
 
-        /* Alternating row colors and hover state */
         .zambot-table tbody tr:nth-child(even) { background-color: var(--bg-row-alt); }
         .zambot-table tbody tr:hover td { background-color: var(--bg-row-hover); }
 
@@ -76,7 +73,6 @@
         .spinner { width: 2rem; height: 2rem; border: 3px solid var(--border); border-top-color: var(--text-main); border-radius: 50%; margin: 0 auto 1rem; animation: spin 0.8s linear infinite; }
         @keyframes spin { to { transform: rotate(360deg); } }
 
-        /* --- MOBILE ADAPTATION (Card-based Layout) --- */
         @media (max-width: 768px) {
             .branding { flex-direction: column; align-items: center; gap: 0.5rem; border-bottom: none; }
             .branding h1 { font-size: 2rem; text-align: center; margin: 0; }
@@ -161,17 +157,35 @@
 
             const filtered = rawSessions.filter(s => {
                 const eventDate = s.start_time ? s.start_time.split('T')[0] : '';
-
                 if (eventDate < todayStr) return false;
 
                 const nowTime = new Date().getTime();
                 const endTime = s.end_time ? new Date(s.end_time).getTime() : 0;
                 const feedStatus = s.registration_status ? s.registration_status.toLowerCase() : '';
 
+                // Capacity Checks for Filter Override
+                const skaterOpen = s.skaters_open_slots !== undefined ? s.skaters_open_slots : 0;
+                const skaterCap = s.skaters_capacity !== undefined ? s.skaters_capacity : 0;
+                const goalieOpen = s.goalies_open_slots !== undefined ? s.goalies_open_slots : 0;
+                const goalieCap = s.goalies_capacity !== undefined ? s.goalies_capacity : 0;
+
+                const isSkatersFull = skaterCap > 0 && skaterOpen <= 0;
+                const isGoaliesFull = goalieCap > 0 && goalieOpen <= 0;
+
+                let isSpotsFull = false;
+                if (skaterCap > 0 && goalieCap > 0) {
+                    isSpotsFull = isSkatersFull && isGoaliesFull; // AND Logic Validation
+                } else if (skaterCap > 0) {
+                    isSpotsFull = isSkatersFull;
+                } else if (goalieCap > 0) {
+                    isSpotsFull = isGoaliesFull;
+                }
+
                 const isEndTimePassed = endTime > 0 && nowTime > endTime;
                 const isClosedFeed = feedStatus === 'closed';
 
-                if (isEndTimePassed || isClosedFeed) {
+                // Exclude if explicitly passed end time OR if feed says "closed" but capacity is not actually full.
+                if (isEndTimePassed || (isClosedFeed && !isSpotsFull)) {
                     return false;
                 }
 
@@ -252,9 +266,17 @@
                     const feedStatus = s.registration_status ? s.registration_status.toLowerCase() : '';
                     const isFullFeed = feedStatus === 'full';
 
-                    const totalCap = skaterCap + goalieCap;
-                    const totalOpen = skaterOpen + goalieOpen;
-                    const isSpotsFull = (totalCap > 0 && totalOpen <= 0);
+                    const isSkatersFull = skaterCap > 0 && skaterOpen <= 0;
+                    const isGoaliesFull = goalieCap > 0 && goalieOpen <= 0;
+
+                    let isSpotsFull = false;
+                    if (skaterCap > 0 && goalieCap > 0) {
+                        isSpotsFull = isSkatersFull && isGoaliesFull;
+                    } else if (skaterCap > 0) {
+                        isSpotsFull = isSkatersFull;
+                    } else if (goalieCap > 0) {
+                        isSpotsFull = isGoaliesFull;
+                    }
 
                     const isFull = isSpotsFull || isFullFeed;
                     const isInProgress = !isFull && startTime > 0 && endTime > 0 && nowTime >= startTime && nowTime <= endTime;

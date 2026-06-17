@@ -1,6 +1,6 @@
 import httpx
-import calendar
 import asyncio
+import sqlite3
 from datetime import datetime, timedelta
 from src.parsers.iceandfield_parser import IceAndFieldParser
 from src.storage.iceandfield_storage import IceAndFieldStorage
@@ -39,7 +39,6 @@ class SyncManager:
         custom_timeout = httpx.Timeout(timeout=10.0, read=30.0)
         async with httpx.AsyncClient(timeout=custom_timeout) as client:
             now = datetime.now()
-            # Calculate a flat 31-day window starting from today
             end_date = now + timedelta(days=31)
 
             start_str = now.strftime("%Y-%m-%d 00:00:00")
@@ -53,7 +52,7 @@ class SyncManager:
                 "filter[start__lte]": end_str, "include": "eventType,summary,resource.facility"
             }
 
-            target_codes = ["10", "12", "15", "16", "17", "22"]
+            target_codes = ["10", "12", "15", "16", "17", "22", "g", "r"]
             for index, code in enumerate(target_codes):
                 base_params[f"filter[or][{index}][eventType.code]"] = code
 
@@ -109,7 +108,6 @@ class SyncManager:
         custom_timeout = httpx.Timeout(timeout=10.0, read=30.0)
         async with httpx.AsyncClient(timeout=custom_timeout) as client:
             now = datetime.now()
-            # Calculate a flat 31-day window starting from today
             end_date = now + timedelta(days=31)
 
             start_str = now.strftime("%Y-%m-%d 00:00:00")
@@ -123,7 +121,7 @@ class SyncManager:
                 "filter[start__lte]": end_str, "include": "eventType,summary,resource.facility"
             }
 
-            chap_codes = ["6", "9", "12", "13"]
+            chap_codes = ["13", "g", "9", "12", "6", "r"]
             for index, code in enumerate(chap_codes):
                 base_params[f"filter[or][{index}][eventType.code]"] = code
 
@@ -179,57 +177,87 @@ class SyncManager:
         custom_timeout = httpx.Timeout(timeout=10.0, read=30.0)
         async with httpx.AsyncClient(timeout=custom_timeout, follow_redirects=True) as client:
 
-            # Cache-bust the HTML feed itself to ensure we see newly added schedule links
             cb_html = int(datetime.now().timestamp())
             busted_base_url = f"{base_url}?_cb={cb_html}"
 
             print(f"🔄 Pond: Fetching HTML target -> {busted_base_url}")
             try:
                 response = await client.get(busted_base_url)
-                if response.status_code == 200:
-                    current_year = datetime.now().year
-                    flat_records = self.pond_parser.parse_html_payload(response.text, current_year)
 
-                    if flat_records:
-                        print(f"   🔄 Pond: Fetching capacity JSON for {len(flat_records)} sessions...")
-                        for record in flat_records:
-                            event_url = record.get("event_url")
-                            if event_url:
-                                json_url = f"{event_url}.json"
-                                fetched = False
+                # ABORT OPERATION IF COLLECTION FAILS (Protects DB from being wiped)
+                if response.status_code != 200:
+                    print(
+                        f"❌ Error fetching Pond HTML: {response.status_code}. Aborting sync to preserve existing DB records.")
+                    return
 
-                                for attempt in range(3):
-                                    try:
-                                        # Force Shopify edge nodes to pull fresh origin inventory data
-                                        cb_json = int(datetime.now().timestamp() * 1000) + attempt
-                                        busted_json_url = f"{json_url}?_cb={cb_json}"
+                current_year = datetime.now().year
+                flat_records = self.pond_parser.parse_html_payload(response.text, current_year)
 
-                                        j_res = await client.get(busted_json_url)
-                                        if j_res.status_code == 200:
-                                            self.pond_parser.enrich_with_json(record, j_res.json())
-                                            fetched = True
-                                            break
-                                        elif j_res.status_code == 429:
-                                            await asyncio.sleep(2)
-                                        else:
-                                            break
-                                    except httpx.ReadTimeout:
-                                        await asyncio.sleep(1)
-                                    except Exception as e:
-                                        if attempt == 2:
-                                            print(f"   ⚠️ Pond JSON Network Error ({busted_json_url}): {e}")
-                                        await asyncio.sleep(1)
+                if not flat_records:
+                    print(f"   ⚠️ Pond: Parsed payload contained zero current-year sessions. Aborting DB wipe.")
+                    return
 
-                                if not fetched:
-                                    print(f"   ⚠️ Could not fetch capacity data for {json_url}")
+                print(f"   🔄 Pond: Fetching capacity JSON for {len(flat_records)} sessions...")
 
-                                await asyncio.sleep(0.5)
+                # --- 1. PRE-FETCH EXISTING DB DATA FOR FALLBACK PROTECTION ---
+                existing_data = {}
+                try:
+                    with sqlite3.connect(self.pond_storage.db_path) as conn:
+                        conn.row_factory = sqlite3.Row
+                        cur = conn.execute("SELECT * FROM pond_sessions_v3")
+                        for row in cur.fetchall():
+                            # Create a unique match key
+                            key = f"{row['start_time']}_{row['resource_name']}"
+                            existing_data[key] = dict(row)
+                except sqlite3.OperationalError:
+                    pass  # Table likely hasn't been created yet
 
-                        self.pond_storage.save_flat_records(flat_records)
-                        print(f"   ✅ Pond: Saved {len(flat_records)} sessions")
-                    else:
-                        print(f"   ⚠️ Pond: Parsed payload contained zero current-year sessions.")
-                else:
-                    print(f"❌ Error fetching Pond HTML: {response.status_code}")
+                for record in flat_records:
+                    event_url = record.get("event_url")
+                    if event_url:
+                        json_url = f"{event_url}.json"
+                        fetched = False
+
+                        for attempt in range(3):
+                            try:
+                                cb_json = int(datetime.now().timestamp() * 1000) + attempt
+                                busted_json_url = f"{json_url}?_cb={cb_json}"
+
+                                j_res = await client.get(busted_json_url)
+                                if j_res.status_code == 200:
+                                    self.pond_parser.enrich_with_json(record, j_res.json())
+                                    fetched = True
+                                    break
+                                elif j_res.status_code == 429:
+                                    await asyncio.sleep(2)
+                                else:
+                                    break
+                            except httpx.ReadTimeout:
+                                await asyncio.sleep(1)
+                            except Exception as e:
+                                if attempt == 2:
+                                    print(f"   ⚠️ Pond JSON Network Error ({busted_json_url}): {e}")
+                                await asyncio.sleep(1)
+
+                        if not fetched:
+                            print(f"   ⚠️ Could not fetch capacity data for {json_url}")
+                            # --- 2. RESTORE FALLBACK DATA ON FETCH FAILURE ---
+                            key = f"{record['start_time']}_{record['resource_name']}"
+                            if key in existing_data:
+                                ext = existing_data[key]
+                                record["skaters_registered"] = ext.get("skaters_registered", 0)
+                                record["skaters_open_slots"] = ext.get("skaters_open_slots", 0)
+                                record["skaters_capacity"] = ext.get("skaters_capacity", 0)
+                                record["goalies_registered"] = ext.get("goalies_registered", 0)
+                                record["goalies_open_slots"] = ext.get("goalies_open_slots", 0)
+                                record["goalies_capacity"] = ext.get("goalies_capacity", 0)
+                                record["registration_status"] = ext.get("registration_status", "unknown")
+                                print(f"   🛡️ Restored previous known capacity data from database for {key}")
+
+                        await asyncio.sleep(0.5)
+
+                self.pond_storage.save_flat_records(flat_records)
+                print(f"   ✅ Pond: Saved {len(flat_records)} sessions")
+
             except Exception as e:
-                print(f"❌ Critical exception parsing Pond feed: {e}")
+                print(f"❌ Critical exception parsing Pond feed: {e}. DB untouched.")
