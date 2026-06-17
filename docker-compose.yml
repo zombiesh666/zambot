@@ -4,7 +4,6 @@ services:
   zambot-app:
     build: .
     container_name: zambot-app
-    # Remove public port exposure here so only Caddy talks to the public internet
     expose:
       - "8000"
     volumes:
@@ -21,14 +20,27 @@ services:
       - "80:80"
       - "443:443"
     volumes:
-      # Simple inline routing configuration
       - ~/zambot/Caddyfile:/etc/caddy/Caddyfile
-      # Persistent volumes to store your SSL certificates safely so they aren't lost on restart
       - caddy_data:/data
       - caddy_config:/config
+      # Shared log volume for GoAccess to read
+      - caddy_logs:/var/log/caddy
     depends_on:
       - zambot-app
+
+  goaccess:
+    image: allinone/goaccess
+    container_name: zambot-analytics
+    restart: always
+    environment:
+      - GOACCESS_CUSTOM_COMMAND=--log-format=CADDY
+    volumes:
+      - caddy_logs:/srv/logs:ro
+      # Outputs a beautiful static report file right into your data directory
+      - ~/zambot/data:/srv/report
+    command: goaccess /srv/logs/access.log -o /srv/report/stats.html --real-time-html --log-format=CADDY
 
 volumes:
   caddy_data:
   caddy_config:
+  caddy_logs:
