@@ -26,16 +26,19 @@ services:
       - zambot-app
 
   goaccess:
-    # 👉 FIX: Switched to the official community image
-    image: goaccess/goaccess:latest
+    # 👉 FIX: Switched to the open linuxserver build to clear the pull error
+    image: lscr.io/linuxserver/goaccess:latest
     container_name: zambot-analytics
     restart: always
     environment:
-      - GOACCESS_CUSTOM_COMMAND=--log-format=CADDY
+      - PUID=1000
+      - PGID=1000
+      - TZ=America/Chicago
     volumes:
-      - caddy_logs:/srv/logs:ro
-      - ~/zambot/data:/srv/report
-    command: goaccess /srv/logs/access.log -o /srv/report/stats.html --real-time-html --log-format=CADDY
+      - caddy_logs:/cxlogs:ro
+      - ~/zambot/data:/config
+    # Linuxserver uses a built-in UI daemon, or we can force the standard direct compile flag:
+    command: goaccess /cxlogs/access.log -o /config/stats.html --real-time-html --log-format=CADDY
 
 volumes:
   caddy_data:
