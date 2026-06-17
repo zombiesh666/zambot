@@ -3,11 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <!-- 👉 Updated Browser/Tab Title -->
     <title>Zambot - ATX Ice Schedule • Your Shift Starts Here</title>
-    <!-- Modern Inline SVG Favicon (Hockey Skate) -->
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>⛸️</text></svg>">
-    <!-- Import Retro Scoreboard Font -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -34,7 +31,10 @@
         header { padding: 2rem 1rem 1rem; max-width: 1200px; margin: 0 auto; }
         .branding { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 1.5rem; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 1rem; }
         .branding h1 { font-size: 2.25rem; font-weight: 700; letter-spacing: 0.05em; margin: 0; text-transform: uppercase; color: var(--text-main); }
-        .branding .motto { font-size: 1rem; font-weight: 500; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.15em; margin-bottom: 0.3rem; }
+
+        /* Motto Layout */
+        .branding .motto { font-size: 1rem; font-weight: 500; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.15em; margin-bottom: 0.3rem; display: flex; align-items: center; gap: 0.5rem; }
+        .motto-dot { color: var(--text-muted); }
 
         main { max-width: 1200px; margin: 0 auto; padding: 0 1rem; }
 
@@ -110,7 +110,10 @@
         @media (max-width: 768px) {
             .branding { flex-direction: column; align-items: center; gap: 0.5rem; border-bottom: none; }
             .branding h1 { font-size: 2rem; text-align: center; margin: 0; }
-            .branding .motto { font-size: 0.85rem; text-align: center; margin-bottom: 1rem; }
+
+            /* 👉 Responsive Motto Tweaks: stack text lines cleanly and hide the spacer dot */
+            .branding .motto { flex-direction: column; font-size: 0.85rem; text-align: center; margin-bottom: 1rem; gap: 0.25rem; }
+            .motto-dot { display: none; }
 
             .zambot-table, .zambot-table tbody { display: block; width: 100%; }
             .zambot-table tbody tr {
@@ -123,10 +126,8 @@
             }
             .zambot-table tbody tr:last-child { border-bottom: none; }
 
-            /* Apply alt row color */
             .zambot-table tbody tr:nth-child(even) { background-color: rgba(255, 255, 255, 0.01); }
 
-            /* FORCE hover state to apply and override the nth-child on mobile */
             .zambot-table tbody tr:hover,
             .zambot-table tbody tr:nth-child(even):hover {
                 background-color: var(--bg-row-hover);
@@ -152,7 +153,11 @@
     <header>
         <div class="branding">
             <h1>ZAMBOT</h1>
-            <span class="motto">ATX Ice Schedule • Your Shift Starts Here</span>
+            <div class="motto">
+                <span>ATX Ice Schedule</span>
+                <span class="motto-dot">•</span>
+                <span>Your Shift Starts Here</span>
+            </div>
         </div>
     </header>
 
