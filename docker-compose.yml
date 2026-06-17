@@ -4,12 +4,31 @@ services:
   zambot-app:
     build: .
     container_name: zambot-app
-    ports:
-      # 👉 Maps standard HTTP port 80 on your droplet host to 8000 inside the container
-      - "80:8000"
+    # Remove public port exposure here so only Caddy talks to the public internet
+    expose:
+      - "8000"
     volumes:
       - ~/zambot/data:/app/data
-      # FIX: Sync the droplet host system clock and timezone parameters directly into the container environment
       - /etc/localtime:/etc/localtime:ro
       - /etc/timezone:/etc/timezone:ro
     restart: always
+
+  caddy:
+    image: caddy:2-alpine
+    container_name: zambot-proxy
+    restart: always
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      # Simple inline routing configuration
+      - ~/zambot/Caddyfile:/etc/caddy/Caddyfile
+      # Persistent volumes to store your SSL certificates safely so they aren't lost on restart
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - zambot-app
+
+volumes:
+  caddy_data:
+  caddy_config:

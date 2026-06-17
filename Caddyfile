@@ -1,0 +1,3 @@
+zambot.live, www.zambot.live {
+    reverse_proxy zambot-app:8000
+}
