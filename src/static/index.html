@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Zambot Hockey Aggregator</title>
+    <title>Zambot - Your Shift Starts Here</title>
     <!-- Import Retro Scoreboard Font -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -35,8 +35,37 @@
 
         main { max-width: 1200px; margin: 0 auto; padding: 0 1rem; }
 
-        .date-section { margin-bottom: 3rem; }
-        .date-header { font-size: 1.25rem; font-weight: 700; color: var(--text-main); margin-bottom: 0.5rem; padding-bottom: 0.5rem; border-bottom: 2px solid var(--border); text-transform: uppercase; letter-spacing: 0.05em; }
+        /* Accordion Structural Wrapper */
+        .date-accordion-block { margin-bottom: 0.75rem; border: 1px solid var(--border); border-radius: 6px; overflow: hidden; }
+
+        /* Header Bar Trigger */
+        .date-accordion-trigger {
+            width: 100%;
+            background: rgba(255,255,255,0.02);
+            border: none;
+            color: var(--text-main);
+            font-family: 'Chakra Petch', sans-serif;
+            font-size: 1.15rem;
+            font-weight: 700;
+            padding: 1rem 1.25rem;
+            text-align: left;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            transition: background 0.15s;
+        }
+        .date-accordion-trigger:hover { background: rgba(255,255,255,0.06); }
+
+        /* Dynamic Indicator Arrow Icon */
+        .accordion-arrow { font-size: 0.85rem; color: var(--text-muted); transition: transform 0.2s ease; }
+        .date-accordion-block.open .accordion-arrow { transform: rotate(180deg); }
+
+        /* Hidden/Revealed Slide Container */
+        .date-accordion-content { display: none; background: #0c0c0c; border-top: 1px solid rgba(255,255,255,0.03); }
+        .date-accordion-block.open .date-accordion-content { display: block; }
 
         /* Dashboard Table Styling */
         .table-wrapper { width: 100%; }
@@ -84,11 +113,12 @@
                 grid-template-columns: 1fr auto;
                 grid-gap: 0.75rem;
                 padding: 1.25rem 1rem;
-                border: 1px solid var(--border);
-                border-radius: 8px;
-                margin-bottom: 1rem;
-                background-color: rgba(255, 255, 255, 0.02);
+                border-bottom: 1px solid var(--border);
+                background-color: transparent;
             }
+            .zambot-table tr:last-child { border-bottom: none; }
+            .zambot-table tr:nth-child(even) { background-color: rgba(255, 255, 255, 0.01); }
+
             .zambot-table td { padding: 0; border: none; display: flex; align-items: center; white-space: normal; }
 
             .zambot-table td.col-type { grid-column: 1 / 2; grid-row: 1; font-size: 1.2rem; }
@@ -133,6 +163,13 @@
             }
         }
 
+        function toggleAccordion(elementId) {
+            const container = document.getElementById(elementId);
+            if (container) {
+                container.classList.toggle('open');
+            }
+        }
+
         function formatType(rawType, summaryName) {
             if (rawType === 'dropin') return 'Drop-In';
             if (rawType === 'stickandpuck') return 'Stick & Puck';
@@ -153,7 +190,12 @@
         function renderAgenda() {
             const container = document.getElementById('scheduleView');
             const now = new Date();
+
             const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+
+            const tomorrowObj = new Date();
+            tomorrowObj.setDate(now.getDate() + 1);
+            const tomorrowStr = `${tomorrowObj.getFullYear()}-${String(tomorrowObj.getMonth() + 1).padStart(2, '0')}-${String(tomorrowObj.getDate()).padStart(2, '0')}`;
 
             const filtered = rawSessions.filter(s => {
                 const eventDate = s.start_time ? s.start_time.split('T')[0] : '';
@@ -163,7 +205,6 @@
                 const endTime = s.end_time ? new Date(s.end_time).getTime() : 0;
                 const feedStatus = s.registration_status ? s.registration_status.toLowerCase() : '';
 
-                // Capacity Checks for Filter Override
                 const skaterOpen = s.skaters_open_slots !== undefined ? s.skaters_open_slots : 0;
                 const skaterCap = s.skaters_capacity !== undefined ? s.skaters_capacity : 0;
                 const goalieOpen = s.goalies_open_slots !== undefined ? s.goalies_open_slots : 0;
@@ -174,7 +215,7 @@
 
                 let isSpotsFull = false;
                 if (skaterCap > 0 && goalieCap > 0) {
-                    isSpotsFull = isSkatersFull && isGoaliesFull; // AND Logic Validation
+                    isSpotsFull = isSkatersFull && isGoaliesFull;
                 } else if (skaterCap > 0) {
                     isSpotsFull = isSkatersFull;
                 } else if (goalieCap > 0) {
@@ -184,7 +225,6 @@
                 const isEndTimePassed = endTime > 0 && nowTime > endTime;
                 const isClosedFeed = feedStatus === 'closed';
 
-                // Exclude if explicitly passed end time OR if feed says "closed" but capacity is not actually full.
                 if (isEndTimePassed || (isClosedFeed && !isSpotsFull)) {
                     return false;
                 }
@@ -205,20 +245,39 @@
             });
 
             let htmlString = '';
+            let uniqueIdIndex = 0;
+
             Object.keys(groups).sort().forEach(date => {
+                uniqueIdIndex++;
+                const blockId = `accordion-block-${uniqueIdIndex}`;
+
                 let displayHeader = date;
+                let isAutoOpen = false;
+                let dateBadgeStr = '';
+
                 if (date !== 'Unknown Date') {
                     const parts = date.split('-');
                     const dateObj = new Date(Date.UTC(parts[0], parts[1] - 1, parts[2]));
                     displayHeader = dateObj.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric', timeZone: 'UTC' });
+
+                    // Create short date identifier for inline bracket timestamps
+                    dateBadgeStr = dateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' }) + ', ';
+
+                    if (date === todayStr || date === tomorrowStr) {
+                        isAutoOpen = true;
+                    }
                 }
 
                 htmlString += `
-                    <div class="date-section">
-                        <div class="date-header">${displayHeader}</div>
-                        <div class="table-wrapper">
-                            <table class="zambot-table">
-                                <tbody>
+                    <div class="date-accordion-block ${isAutoOpen ? 'open' : ''}" id="${blockId}">
+                        <button class="date-accordion-trigger" onclick="toggleAccordion('${blockId}')">
+                            <span>${displayHeader}</span>
+                            <span class="accordion-arrow">▼</span>
+                        </button>
+                        <div class="date-accordion-content">
+                            <div class="table-wrapper">
+                                <table class="zambot-table">
+                                    <tbody>
                 `;
 
                 groups[date].forEach(s => {
@@ -293,7 +352,8 @@
                         statusText = 'Open'; statusClass = 'open';
                     }
 
-                    const timeBlock = `${formatTimeStr(s.start_time)} - ${formatTimeStr(s.end_time)}`;
+                    // Prepend the short date format inside the inline bracket row output timestamp
+                    const timeBlock = `${dateBadgeStr}${formatTimeStr(s.start_time)} - ${formatTimeStr(s.end_time)}`;
                     const clickAction = s.event_url ? `onclick="window.open('${s.event_url}', '_blank')"` : '';
 
                     htmlString += `
@@ -314,8 +374,9 @@
                 });
 
                 htmlString += `
-                                </tbody>
-                            </table>
+                                    </tbody>
+                                </table>
+                            </div>
                         </div>
                     </div>
                 `;

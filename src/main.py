@@ -77,13 +77,14 @@ def get_sessions():
     with sqlite3.connect(DB_PATH) as conn:
         conn.row_factory = sqlite3.Row
 
+        # 👉 Updated queries to strictly bound returned records to a +14 day window
         query = """
             SELECT CAST(id AS TEXT) as id, summary_name, start_time, end_time, length, 
                    skaters_registered, skaters_open_slots, skaters_capacity, 
                    goalies_registered, goalies_open_slots, goalies_capacity,
                    registration_status, resource_name, facility_name, event_url, event_type
             FROM iceandfield_v3
-            WHERE start_time >= date('now', 'localtime')
+            WHERE start_time >= date('now', 'localtime') AND start_time <= date('now', '+14 days', 'localtime')
 
             UNION ALL
 
@@ -92,7 +93,7 @@ def get_sessions():
                    goalies_registered, goalies_open_slots, goalies_capacity,
                    registration_status, resource_name, facility_name, event_url, event_type
             FROM chaparral_sessions_v3
-            WHERE start_time >= date('now', 'localtime')
+            WHERE start_time >= date('now', 'localtime') AND start_time <= date('now', '+14 days', 'localtime')
 
             UNION ALL
 
@@ -101,7 +102,7 @@ def get_sessions():
                    goalies_registered, goalies_open_slots, goalies_capacity,
                    registration_status, resource_name, facility_name, event_url, event_type
             FROM pond_sessions_v3
-            WHERE start_time >= date('now', 'localtime')
+            WHERE start_time >= date('now', 'localtime') AND start_time <= date('now', '+14 days', 'localtime')
 
             ORDER BY start_time ASC
         """

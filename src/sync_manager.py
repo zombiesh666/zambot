@@ -39,7 +39,8 @@ class SyncManager:
         custom_timeout = httpx.Timeout(timeout=10.0, read=30.0)
         async with httpx.AsyncClient(timeout=custom_timeout) as client:
             now = datetime.now()
-            end_date = now + timedelta(days=31)
+            # 👉 Reduced API extraction range to 14 days
+            end_date = now + timedelta(days=14)
 
             start_str = now.strftime("%Y-%m-%d 00:00:00")
             end_str = end_date.strftime("%Y-%m-%d 23:59:59")
@@ -108,7 +109,8 @@ class SyncManager:
         custom_timeout = httpx.Timeout(timeout=10.0, read=30.0)
         async with httpx.AsyncClient(timeout=custom_timeout) as client:
             now = datetime.now()
-            end_date = now + timedelta(days=31)
+            # 👉 Reduced API extraction range to 14 days
+            end_date = now + timedelta(days=14)
 
             start_str = now.strftime("%Y-%m-%d 00:00:00")
             end_str = end_date.strftime("%Y-%m-%d 23:59:59")
