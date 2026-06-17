@@ -5,7 +5,8 @@ services:
     build: .
     container_name: zambot-app
     ports:
-      - "8000:8000"
+      # 👉 Maps standard HTTP port 80 on your droplet host to 8000 inside the container
+      - "80:8000"
     volumes:
       - ~/zambot/data:/app/data
       # FIX: Sync the droplet host system clock and timezone parameters directly into the container environment
