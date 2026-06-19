@@ -68,14 +68,28 @@ class IceAndFieldParser(BaseParser):
             registered_count = sum_attrs.get("registered_count")
             if registered_count is None: registered_count = 0
 
-            open_slots = sum_attrs.get("remaining_registration_slots")
-            if open_slots is None: open_slots = sum_attrs.get("open_slots")
-            if open_slots is None: open_slots = attr.get("open_slots", 0)
-
-            composite_capacity = sum_attrs.get("composite_capacity")
-            if composite_capacity is None: composite_capacity = 0
-
             status = sum_attrs.get("registration_status") or attr.get("registration_status", "unknown")
+
+            # --- Dynamic Capacity Normalization Fallback Matrix ---
+            # Resolves feed anomalies where slot availability or capacities drop to -1
+            is_crossover = "crossover" in facility_name.lower()
+
+            if event_type_str == "public" and is_crossover:
+                composite_capacity = 250
+                skaters_open_slots = max(0, composite_capacity - registered_count)
+            elif event_type_str == "stickandpuck" and is_crossover:
+                composite_capacity = 25
+                skaters_open_slots = max(0, composite_capacity - registered_count)
+            else:
+                composite_capacity = sum_attrs.get("composite_capacity")
+                if composite_capacity is None: composite_capacity = 0
+
+                skaters_open_slots = sum_attrs.get("remaining_registration_slots")
+                if skaters_open_slots is None: skaters_open_slots = sum_attrs.get("open_slots")
+                if skaters_open_slots is None: skaters_open_slots = attr.get("open_slots", 0)
+
+                if skaters_open_slots <= -1:
+                    skaters_open_slots = max(0, composite_capacity - registered_count)
 
             start_time_iso = attr.get("start") or ""
             end_time_iso = attr.get("end") or ""
@@ -95,7 +109,7 @@ class IceAndFieldParser(BaseParser):
                 "end_time": end_time_iso,
                 "length": length_minutes,
                 "skaters_registered": registered_count,
-                "skaters_open_slots": open_slots,
+                "skaters_open_slots": skaters_open_slots,
                 "skaters_capacity": composite_capacity,
                 "goalies_registered": 0,
                 "goalies_open_slots": 0,
