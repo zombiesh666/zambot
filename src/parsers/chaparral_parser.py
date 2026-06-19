@@ -70,11 +70,23 @@ class ChaparralParser(BaseParser):
                     length_minutes = 0
 
             open_slots = sum_attrs.get("open_slots")
-            if open_slots is None:
-                open_slots = attr.get("open_slots", 0)
-
             registered_count = sum_attrs.get("registered_count") or 0
             composite_capacity = sum_attrs.get("composite_capacity") or 0
+
+            # --- Dynamic Capacity Normalization Fallback Matrix ---
+            if event_type_str == "public":
+                if composite_capacity <= 0:
+                    composite_capacity = 200
+                if open_slots is None or open_slots <= -1:
+                    open_slots = max(0, composite_capacity - registered_count)
+            elif event_type_str == "stickandpuck":
+                if composite_capacity <= 0:
+                    composite_capacity = 26
+                if open_slots is None or open_slots <= -1:
+                    open_slots = max(0, composite_capacity - registered_count)
+            else:
+                if open_slots is None:
+                    open_slots = attr.get("open_slots", 0)
 
             start_time_iso = attr.get("start") or ""
             end_time_iso = attr.get("end") or ""
