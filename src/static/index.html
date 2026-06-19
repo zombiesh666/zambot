@@ -4,9 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Zambot - ATX Ice Schedule • Your Shift Starts Here</title>
-    <!-- Modern Inline SVG Favicon (Hockey Skate) -->
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>⛸️</text></svg>">
-    <!-- Import Retro Scoreboard Font -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -39,11 +37,11 @@
         .branding .motto { font-size: 1rem; font-weight: 500; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.15em; margin-bottom: 0.3rem; display: flex; align-items: center; gap: 0.5rem; }
         .motto-dot { color: var(--text-muted); }
 
-        /* Quick Filters Container (Desktop: Left-Aligned Row) */
+        /* Quick Filters Container */
         .filter-container {
             display: flex;
             flex-wrap: wrap;
-            justify-content: flex-start; /* 👉 Changed from center to flex-start */
+            justify-content: flex-start;
             gap: 0.5rem;
             margin-bottom: 1.5rem;
         }
@@ -101,7 +99,14 @@
 
         /* Dashboard Table Styling */
         .table-wrapper { width: 100%; }
-        .zambot-table { width: 100%; border-collapse: collapse; text-align: left; font-size: 1rem; white-space: nowrap; }
+        .zambot-table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+            font-size: 1rem;
+            white-space: nowrap;
+            table-layout: fixed;
+        }
 
         .zambot-table tbody tr { cursor: pointer; transition: background-color 0.15s ease; }
         .zambot-table td { padding: 1.15rem 1rem; border-bottom: 1px solid rgba(255,255,255,0.05); vertical-align: middle; }
@@ -109,11 +114,15 @@
         .zambot-table tbody tr:nth-child(even) { background-color: var(--bg-row-alt); }
         .zambot-table tbody tr:hover { background-color: var(--bg-row-hover); }
 
-        .col-type { font-weight: 500; color: var(--text-main); font-size: 1.1rem; }
+        /* 👉 Rebalanced Proportions: Squeezed time bounds from 30% to 22% to pull stats and pills inward */
+        .col-type { font-weight: 500; color: var(--text-main); font-size: 1.1rem; width: 16%; }
         .type-icon { display: inline-block; margin-right: 6px; font-size: 1.2em; }
 
-        .col-rink { color: var(--text-muted); }
-        .col-time { font-weight: 600; letter-spacing: 0.05em; }
+        .col-rink { color: var(--text-muted); width: 13%; }
+        .col-resource { width: 19%; }
+        .col-time { font-weight: 600; letter-spacing: 0.05em; width: 22%; }
+        .col-capacity { width: 20%; }
+        .col-status { width: 10%; text-align: right; }
 
         /* Resource Badges */
         .badge { font-size: 0.75rem; font-weight: 700; padding: 0.25rem 0.6rem; border-radius: 4px; text-transform: uppercase; letter-spacing: 0.1em; display: inline-block; }
@@ -179,7 +188,7 @@
                 background-color: var(--bg-row-hover);
             }
 
-            .zambot-table td { padding: 0; border: none; display: flex; align-items: center; white-space: normal; background-color: transparent !important; }
+            .zambot-table td { padding: 0; border: none; display: flex; align-items: center; white-space: normal; background-color: transparent !important; width: auto; }
 
             .zambot-table td.col-type { grid-column: 1 / 2; grid-row: 1; font-size: 1.2rem; }
             .zambot-table td.col-status { grid-column: 2 / 3; grid-row: 1; justify-content: flex-end; }
@@ -208,7 +217,6 @@
             </div>
         </div>
 
-        <!-- Event Type Interactive Ribbon -->
         <div class="filter-container">
             <button class="filter-btn active" onclick="applyTypeFilter('all', this)">All Ice</button>
             <button class="filter-btn" onclick="applyTypeFilter('dropin', this)">🚨 Drop-In</button>
@@ -228,7 +236,6 @@
     <script>
         let rawSessions = [];
         let currentFilterType = 'all';
-        // Tracks which date block groups are currently expanded by the user
         let expandedBlocks = new Set(['accordion-block-1']);
 
         async function fetchSessions(isInitialLoad = false) {
@@ -251,7 +258,6 @@
         function applyTypeFilter(filterType, element) {
             currentFilterType = filterType;
 
-            // Toggle active button states
             document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
             element.classList.add('active');
 
@@ -301,7 +307,6 @@
                 const eventDate = s.start_time ? s.start_time.split('T')[0] : '';
                 if (eventDate < todayStr) return false;
 
-                // Match classification properties against active ribbon filter targets
                 if (currentFilterType !== 'all' && s.event_type !== currentFilterType) {
                     return false;
                 }
@@ -337,7 +342,6 @@
                 return true;
             });
 
-            // Lock structural day blocks into position
             const groups = {};
             groups[todayStr] = [];
             groups[tomorrowStr] = [];
@@ -386,7 +390,6 @@
                         <div class="date-accordion-content">
                 `;
 
-                // Clean text notice wrapper for empty days
                 if (groups[date].length === 0) {
                     const lowCaseDay = displayHeader.toLowerCase();
                     htmlString += `<div class="empty-day-msg">No remaining sessions scheduled for ${lowCaseDay}</div>`;
@@ -517,9 +520,7 @@
 
         window.addEventListener('DOMContentLoaded', () => {
             fetchSessions(true);
-            // Local Loop: Recalculates time delta blocks and live conditions every 30 seconds
             setInterval(renderAgenda, 30000);
-            // Remote API Poller: Grabs full layout arrays from your backend server every 5 minutes
             setInterval(() => {
                 fetchSessions(false);
             }, 300000);
