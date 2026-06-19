@@ -2,7 +2,7 @@ import os
 import json
 import sqlite3
 import asyncio
-from fastapi import FastAPI, BackgroundTasks
+from fastapi import FastAPI, BackgroundTasks, HTTPException
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from contextlib import asynccontextmanager
@@ -56,6 +56,15 @@ def read_root():
     if os.path.exists(static_root_index):
         return FileResponse(static_root_index)
     return {"status": "Zambot Online", "msg": "Static HTML index missing."}
+
+
+# --- NEW: Robots.txt Endpoint ---
+@app.get("/robots.txt", include_in_schema=False)
+def serve_robots_txt():
+    robots_path = os.path.join(os.path.dirname(__file__), "static", "robots.txt")
+    if os.path.exists(robots_path):
+        return FileResponse(robots_path, media_type="text/plain")
+    raise HTTPException(status_code=404, detail="robots.txt not found")
 
 
 static_assets_path = os.path.join(os.path.dirname(__file__), "static")

@@ -1,0 +1,9 @@
+# Allow all search engines to index public frontend pages
+User-agent: *
+Allow: /$
+Allow: /static/
+
+# Disallow bots from hammering raw API data feeds or sync routes
+Disallow: /sessions
+Disallow: /sync
+Disallow: /sync/
