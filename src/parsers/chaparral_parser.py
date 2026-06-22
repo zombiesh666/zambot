@@ -100,13 +100,16 @@ class ChaparralParser(BaseParser):
             if start_date and et_id:
                 event_url = f"https://apps.daysmartrecreation.com/dash/x/#/online/chaparralice/calendar?location=1&start={start_date}&end={end_date}&event_type={et_id}"
 
-            key = f"{start_time_iso}_{rink_name}_{length_minutes}"
             is_goalie = "goalie" in session_name.lower()
 
-            if key not in grouped_events:
-                clean_name = session_name.replace(" Goalie", "").replace(" Player", "").replace(" goalie", "").replace(
-                    " player", "")
+            # Clean name extracted before the key so we can group cleanly without the "Lobby" mismatch issue
+            clean_name = session_name.replace(" Goalie", "").replace(" Player", "").replace(" goalie", "").replace(
+                " player", "").strip()
 
+            # 👉 Fix: Swapped rink_name for clean_name to ensure matching despite misassigned DaySmart resources
+            key = f"{start_time_iso}_{clean_name}_{length_minutes}"
+
+            if key not in grouped_events:
                 grouped_events[key] = {
                     "id": item_id,
                     "summary_name": clean_name,
@@ -125,7 +128,13 @@ class ChaparralParser(BaseParser):
                     "event_url": event_url,
                     "event_type": event_type_str
                 }
+            else:
+                # 👉 Fix: If goalie was parsed first and registered in the "Lobby", overwrite it with the real rink name
+                current_rink = grouped_events[key]["resource_name"]
+                if "lobby" in current_rink.lower() and "lobby" not in rink_name.lower():
+                    grouped_events[key]["resource_name"] = rink_name
 
+            # Assign capacities appropriately
             if is_goalie:
                 grouped_events[key]["goalies_registered"] = registered_count
                 grouped_events[key]["goalies_open_slots"] = open_slots
