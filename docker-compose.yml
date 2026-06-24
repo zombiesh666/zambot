@@ -34,6 +34,7 @@ services:
       --real-time-html
       --ws-url=wss://zambot.live/ws-metrics
       --port=7890
+      --origin=https://zambot.live
 
 volumes:
   caddy_data:
