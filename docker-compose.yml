@@ -1,28 +1,42 @@
+version: '3.8'
+
 services:
-  zambot-app:
+  web:
     build: .
-    container_name: zambot-app
-    expose:
-      - "8000"
+    restart: unless-stopped
     volumes:
-      - ~/zambot/data:/app/data
-      - /etc/localtime:/etc/localtime:ro
-      - /etc/timezone:/etc/timezone:ro
-    restart: always
+      - ./data:/app/data
+      - ./src:/app/src
 
   caddy:
-    image: caddy:2-alpine
-    container_name: zambot-proxy
-    restart: always
+    image: caddy:2
+    restart: unless-stopped
     ports:
       - "80:80"
       - "443:443"
     volumes:
-      - ~/zambot/Caddyfile:/etc/caddy/Caddyfile
+      - ./Caddyfile:/etc/caddy/Caddyfile
       - caddy_data:/data
       - caddy_config:/config
-    depends_on:
-      - zambot-app
+      # 👉 Share logs directory with the host
+      - ./logs:/var/log/caddy
+
+  goaccess:
+    image: allinurl/goaccess
+    restart: unless-stopped
+    volumes:
+      # 👉 Read logs from Caddy
+      - ./logs:/var/log/caddy
+      # 👉 Output HTML directly to FastAPI's static folder
+      - ./src/static:/html
+    # The entrypoint for this image is the goaccess binary itself
+    command: >
+      /var/log/caddy/access.log
+      --log-format=CADDY
+      -o /html/metrics.html
+      --real-time-html
+      --ws-url=wss://zambot.live/ws-metrics
+      --port=7890
 
 volumes:
   caddy_data:
