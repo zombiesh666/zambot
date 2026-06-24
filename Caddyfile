@@ -1,22 +1,18 @@
 zambot.live {
-    # 👉 1. Write access logs to the shared volume
     log {
         output file /var/log/caddy/access.log
         format json
     }
 
-    # 👉 2. Route the GoAccess real-time WebSocket with explicit headers
+    # 👉 Pass the WebSocket upgrade headers explicitly
     handle /ws-metrics* {
         reverse_proxy goaccess:7890 {
+            header_up Upgrade {>Upgrade}
+            header_up Connection {>Connection}
             header_up Host {host}
-            header_up X-Real-IP {remote_host}
-            header_up X-Forwarded-For {remote_host}
-            header_up Q-Connection {>Connection}
-            header_up Q-Upgrade {>Upgrade}
         }
     }
 
-    # 👉 3. Route all standard web traffic to FastAPI
     handle {
         reverse_proxy web:8000
     }
