@@ -21,7 +21,7 @@ services:
       # 👉 Share logs directory with the host
       - ./logs:/var/log/caddy
 
-goaccess:
+  goaccess:
     image: allinurl/goaccess
     restart: unless-stopped
     volumes:
