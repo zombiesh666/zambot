@@ -1,17 +1,15 @@
 zambot.live {
-    # 👉 Clean logging configuration that filters out internal noise
+    # Standard log configuration
     log {
         output file /var/log/caddy/access.log
         format json
-        exclude_path /metrics
-        exclude_path /ws-metrics
-        exclude_path /sync
-        exclude_path /sessions
-        exclude_path /wp-admin/install.php?step=1
-        exclude_path /sitemap.xml
-        exclude_path /robots.txt
-        exclude_path /favicon.svg
     }
+
+    # 👉 Create a named matcher for your internal noise endpoints
+    @internal_noise path /metrics* /ws-metrics* /sync* /sessions* /wp-admin/install.php?step=1 /sitemap.xml /robots.txt /favicon.svg
+
+    # 👉 Tell Caddy to completely bypass logging for these paths
+    log_skip @internal_noise
 
     # Route the GoAccess real-time WebSocket
     handle /ws-metrics* {
