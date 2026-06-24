@@ -25,11 +25,8 @@ services:
     image: allinurl/goaccess
     restart: unless-stopped
     volumes:
-      # 👉 Read logs from Caddy
       - ./logs:/var/log/caddy
-      # 👉 Output HTML directly to FastAPI's static folder
       - ./src/static:/html
-    # The entrypoint for this image is the goaccess binary itself
     command: >
       /var/log/caddy/access.log
       --log-format=CADDY
@@ -37,6 +34,7 @@ services:
       --real-time-html
       --ws-url=wss://zambot.live/ws-metrics
       --port=7890
+      --origin=https://zambot.live
 
 volumes:
   caddy_data:

@@ -6,7 +6,7 @@ zambot.live {
     }
 
     # 👉 2. Route the GoAccess real-time WebSocket
-    handle /ws-metrics {
+    handle /ws-metrics* {
         reverse_proxy goaccess:7890
     }
 
