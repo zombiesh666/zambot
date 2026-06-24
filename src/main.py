@@ -58,7 +58,7 @@ def read_root():
     return {"status": "Zambot Online", "msg": "Static HTML index missing."}
 
 
-# --- SEO Endpoints: robots.txt and sitemap.xml ---
+# --- SEO & Analytics Endpoints ---
 @app.get("/robots.txt", include_in_schema=False)
 def serve_robots_txt():
     path = os.path.join(os.path.dirname(__file__), "static", "robots.txt")
@@ -72,6 +72,14 @@ def serve_sitemap():
     if os.path.exists(path):
         return FileResponse(path, media_type="application/xml")
     raise HTTPException(status_code=404, detail="sitemap.xml not found")
+
+# 👉 GoAccess Dashboard Route
+@app.get("/metrics", include_in_schema=False)
+def serve_metrics():
+    path = os.path.join(os.path.dirname(__file__), "static", "metrics.html")
+    if os.path.exists(path):
+        return FileResponse(path, media_type="text/html")
+    raise HTTPException(status_code=404, detail="metrics.html not found (GoAccess may still be generating it)")
 
 
 static_assets_path = os.path.join(os.path.dirname(__file__), "static")
