@@ -6,7 +6,7 @@ zambot.live {
     }
 
     # 👉 Create a named matcher for your internal noise endpoints
-    @internal_noise path /metrics* /ws-metrics* /sync* /sessions* /wp-admin/install.php?step=1 /sitemap.xml /robots.txt /static/favicon.svg
+    @internal_noise path /metrics* /ws-metrics* /sync* /sessions* /wp-admin* /sitemap.xml /robots.txt /static/favicon.svg
 
     # 👉 Tell Caddy to completely bypass logging for these paths
     log_skip @internal_noise
