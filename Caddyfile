@@ -5,9 +5,15 @@ zambot.live {
         format json
     }
 
-    # 👉 2. Route the GoAccess real-time WebSocket
+    # 👉 2. Route the GoAccess real-time WebSocket with explicit headers
     handle /ws-metrics* {
-        reverse_proxy goaccess:7890
+        reverse_proxy goaccess:7890 {
+            header_up Host {host}
+            header_up X-Real-IP {remote_host}
+            header_up X-Forwarded-For {remote_host}
+            header_up Q-Connection {>Connection}
+            header_up Q-Upgrade {>Upgrade}
+        }
     }
 
     # 👉 3. Route all standard web traffic to FastAPI
