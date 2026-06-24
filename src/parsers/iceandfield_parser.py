@@ -73,12 +73,17 @@ class IceAndFieldParser(BaseParser):
             # --- Dynamic Capacity Normalization Fallback Matrix ---
             # Resolves feed anomalies where slot availability or capacities drop to -1
             is_crossover = "crossover" in facility_name.lower()
+            session_lower = session_name.lower()
 
             if event_type_str == "public" and is_crossover:
                 composite_capacity = 250
                 skaters_open_slots = max(0, composite_capacity - registered_count)
             elif event_type_str == "stickandpuck" and is_crossover:
                 composite_capacity = 25
+                skaters_open_slots = max(0, composite_capacity - registered_count)
+            elif event_type_str == "dropin" and is_crossover and (
+                    "first responders drop-in" in session_lower or "adult drop-in" in session_lower):
+                composite_capacity = 20
                 skaters_open_slots = max(0, composite_capacity - registered_count)
             else:
                 composite_capacity = sum_attrs.get("composite_capacity")
