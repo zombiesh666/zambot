@@ -1,16 +1,24 @@
 zambot.live {
-    # 1. Write access logs to the shared volume
+    # 👉 Clean logging configuration that filters out internal noise
     log {
         output file /var/log/caddy/access.log
         format json
+        exclude_path /metrics
+        exclude_path /ws-metrics
+        exclude_path /sync
+        exclude_path /sessions
+        exclude_path /wp-admin/install.php?step=1
+        exclude_path /sitemap.xml
+        exclude_path /robots.txt
+        exclude_path /favicon.svg
     }
 
-    # 👉 2. Let Caddy natively handle the HTTP/2 -> HTTP/1.1 WebSocket translation
+    # Route the GoAccess real-time WebSocket
     handle /ws-metrics* {
         reverse_proxy goaccess:7890
     }
 
-    # 3. Route all standard web traffic to FastAPI
+    # Route all standard web traffic to FastAPI
     handle {
         reverse_proxy web:8000
     }
