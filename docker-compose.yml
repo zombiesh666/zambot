@@ -32,7 +32,7 @@ services:
       --log-format=CADDY
       -o /html/metrics.html
       --real-time-html
-      --ws-url=wss://zambot.live/ws-metrics
+      --ws-url=wss://zambot.live:443/ws-metrics
       --port=7890
       --origin=https://zambot.live
 
