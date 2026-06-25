@@ -9,9 +9,13 @@ zambot.live {
     @not_user_traffic {
         not path /
     }
-
-    # 👉 2. Skip logging for all those background/bot/asset requests
     log_skip @not_user_traffic
+
+    # 👉 2. Match the DigitalOcean Uptime Probe by its User-Agent header
+    @do_probe {
+        header User-Agent *DigitalOcean*
+    }
+    log_skip @do_probe
 
     # Natively rewrite root favicon requests to the static file location
     rewrite /favicon.svg /static/favicon.svg
