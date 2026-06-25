@@ -1,3 +1,10 @@
+# 👉 Global options block to stop logging automatic HTTP-to-HTTPS upgrades
+{
+    servers {
+        automatic_https disable_redirects_logging
+    }
+}
+
 zambot.live {
     # Standard log configuration
     log {
@@ -5,13 +12,13 @@ zambot.live {
         format json
     }
 
-    # 👉 1. Match anything that is NOT a core user-facing route
+    # Match anything that is NOT a core user-facing route
     @not_user_traffic {
         not path /
     }
     log_skip @not_user_traffic
 
-    # 👉 2. Match the DigitalOcean Uptime Probe by its User-Agent header
+    # Match the DigitalOcean Uptime Probe by its User-Agent header
     @do_probe {
         header User-Agent *DigitalOcean*
     }
