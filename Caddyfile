@@ -1,10 +1,3 @@
-# 👉 Global options block to stop logging automatic HTTP-to-HTTPS upgrades
-{
-    servers {
-        automatic_https disable_redirects_logging
-    }
-}
-
 zambot.live {
     # Standard log configuration
     log {
