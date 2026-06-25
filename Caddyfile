@@ -5,9 +5,13 @@ zambot.live {
         format json
     }
 
-    # 👉 Pattern-optimized noise matcher to filter logs efficiently
-    @internal_noise path /metrics* /ws-metrics* /sessions* /.well-known* /sync* /sitemap.xml /robots.txt /favicon.svg /xmlrpc* /bank* /.env* *wp-*
-    log_skip @internal_noise
+    # 👉 1. Match anything that is NOT a core user-facing route
+    @not_user_traffic {
+        not path /
+    }
+
+    # 👉 2. Skip logging for all those background/bot/asset requests
+    log_skip @not_user_traffic
 
     # Natively rewrite root favicon requests to the static file location
     rewrite /favicon.svg /static/favicon.svg
