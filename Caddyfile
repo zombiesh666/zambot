@@ -1,5 +1,15 @@
+# 👉 1. Explicitly catch all unencrypted HTTP traffic
+http://zambot.live {
+    # Perform the permanent secure redirect
+    redir https://zambot.live{uri} permanent
+    
+    # Completely drop logging for this block so it never touches access.log
+    log_skip
+}
+
+# 👉 2. Your production secure HTTPS block
 zambot.live {
-    # Standard log configuration
+    # Standard log configuration (only captures secure traffic)
     log {
         output file /var/log/caddy/access.log
         format json
