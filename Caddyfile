@@ -5,8 +5,8 @@ zambot.live {
         format json
     }
 
-    # 👉 Expanded noise matcher to filter out bot scanners, system routing, and static SEO files
-    @internal_noise path /metrics* /ws-metrics* /sessions* /wp-admin* /.well-known* /sync* /sitemap.xml /robots.txt /favicon.svg /favicon.ico
+    # 👉 Pattern-optimized noise matcher to filter logs efficiently
+    @internal_noise path /metrics* /ws-metrics* /sessions* /.well-known* /sync* /sitemap.xml /robots.txt /favicon.svg /xmlrpc* /bank* /.env* *wp-*
     log_skip @internal_noise
 
     # Natively rewrite root favicon requests to the static file location
