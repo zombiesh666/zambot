@@ -6,12 +6,12 @@ http://zambot.live {
 
 # Production secure HTTPS block
 zambot.live {
-    # 👉 Optimized log configuration with automatic rotation
+    # 👉 Fixed log rotation syntax
     log {
         output file /var/log/caddy/access.log {
-            roll_size 10mb    # Roll/rotate the log file when it hits 10 MB
+            roll_size 10mb    # Roll the log file when it hits 10 MB
             roll_keep 3       # Keep a maximum of 3 rotated backup files
-            roll_keep_days 7  # Retain rotated logs for a maximum of 7 days
+            roll_keep_for 7d  # Retain rotated logs for a maximum of 7 days
         }
         format json
     }
