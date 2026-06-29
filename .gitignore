@@ -27,3 +27,4 @@ Thumbs.db
 start-local.ps1
 .ai/
 logs/access.log
+k6.exe

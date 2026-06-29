@@ -7,8 +7,6 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from contextlib import asynccontextmanager
 from src.sync_manager import SyncManager
-from apscheduler.schedulers.background import BackgroundScheduler
-from apscheduler.triggers.interval import IntervalTrigger
 
 IS_DOCKER = os.path.exists('/.dockerenv')
 DB_DIR = "/app/data" if IS_DOCKER else "./data"
@@ -27,24 +25,29 @@ def load_config() -> dict:
         return {}
 
 
-async def run_scheduled_sync():
-    print("CRON: Running automated 5-minute interval synchronization loop...")
-    config = load_config()
-    await sync_manager.sync_all_feeds(config)
+# 👉 Pure Async Background Poller Task loop (Replaces APScheduler)
+async def schedule_poller_task():
+    # Delay initial check slightly to give the main Uvicorn web server time to stand up
+    await asyncio.sleep(5)
+    while True:
+        try:
+            print("CRON: Running automated 5-minute interval synchronization loop...")
+            config = load_config()
+            await sync_manager.sync_all_feeds(config)
+        except Exception as e:
+            print(f"CRON Error: Loop encountered error: {e}")
 
-
-def scheduled_sync_wrapper():
-    asyncio.run(run_scheduled_sync())
+        # Sleep non-blockingly for 5 minutes (300 seconds)
+        await asyncio.sleep(300)
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    scheduler = BackgroundScheduler(timezone="America/Chicago")
-    # 👉 Background cron trigger: 5-minute interval
-    scheduler.add_job(scheduled_sync_wrapper, IntervalTrigger(minutes=5))
-    scheduler.start()
+    # 👉 Spawn the async background loop directly into the running application event loop
+    poller_task = asyncio.create_task(schedule_poller_task())
     yield
-    scheduler.shutdown()
+    # Safely cancel the task loop when the application winds down
+    poller_task.cancel()
 
 
 app = FastAPI(title="Zambot Hockey Parser", lifespan=lifespan)
@@ -66,6 +69,7 @@ def serve_robots_txt():
         return FileResponse(path, media_type="text/plain")
     raise HTTPException(status_code=404, detail="robots.txt not found")
 
+
 @app.get("/sitemap.xml", include_in_schema=False)
 def serve_sitemap():
     path = os.path.join(os.path.dirname(__file__), "static", "sitemap.xml")
@@ -73,7 +77,7 @@ def serve_sitemap():
         return FileResponse(path, media_type="application/xml")
     raise HTTPException(status_code=404, detail="sitemap.xml not found")
 
-# 👉 GoAccess Dashboard Route
+
 @app.get("/metrics", include_in_schema=False)
 def serve_metrics():
     path = os.path.join(os.path.dirname(__file__), "static", "metrics.html")
