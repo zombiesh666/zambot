@@ -25,6 +25,10 @@ class IceAndFieldStorage(BaseStorage):
                     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
                 );
             """)
+            conn.execute("""
+                CREATE INDEX IF NOT EXISTS idx_iaf_start_time 
+                ON iceandfield_v3(start_time);
+            """)
 
     def save_flat_records(self, flat_records: list[dict]):
         if not flat_records:

@@ -1,5 +1,6 @@
 import os
 import json
+import time
 import sqlite3
 import asyncio
 from fastapi import FastAPI, BackgroundTasks, HTTPException
@@ -98,10 +99,26 @@ async def trigger_sync(background_tasks: BackgroundTasks):
     return {"message": "All aggregation pipelines activated."}
 
 
+# 👉 Define a simple cache state
+route_cache = {
+    "sessions_data": [],
+    "last_fetched": 0
+}
+CACHE_TTL = 30  # Serve from RAM for 30 seconds before re-querying the DB
+
+
 @app.get("/sessions")
 def get_sessions():
-    if not os.path.exists(DB_PATH): return []
+    if not os.path.exists(DB_PATH):
+        return []
 
+    current_time = time.time()
+
+    # 👉 1. Return instantly from RAM if the cache is still fresh
+    if current_time - route_cache["last_fetched"] < CACHE_TTL:
+        return route_cache["sessions_data"]
+
+    # 👉 2. Otherwise, hit the database
     with sqlite3.connect(DB_PATH) as conn:
         conn.row_factory = sqlite3.Row
         query = """
@@ -129,7 +146,13 @@ def get_sessions():
         """
         try:
             cursor = conn.execute(query)
-            return [dict(row) for row in cursor.fetchall()]
+            results = [dict(row) for row in cursor.fetchall()]
+
+            # 👉 3. Update the cache with the new data
+            route_cache["sessions_data"] = results
+            route_cache["last_fetched"] = current_time
+
+            return results
         except sqlite3.OperationalError as e:
             print(f"Database read mismatch: {e}")
             return []
