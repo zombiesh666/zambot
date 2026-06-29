@@ -1,7 +1,7 @@
 import httpx
 import asyncio
-import sqlite3
 from datetime import datetime, timedelta
+import sqlite3
 from src.parsers.iceandfield_parser import IceAndFieldParser
 from src.storage.iceandfield_storage import IceAndFieldStorage
 from src.parsers.chaparral_parser import ChaparralParser
@@ -25,35 +25,50 @@ class SyncManager:
         print("🚀 Starting all aggregation pipelines...")
 
         iaf_url = config.get("iceandfield_feed")
-        if iaf_url: await self.sync_iceandfield(iaf_url)
+        if iaf_url:
+            await self._sync_daysmart_feed(
+                base_url=iaf_url,
+                company_name="iceandfield",
+                target_codes=["10", "12", "15", "16", "17", "22"],
+                parser=self.iaf_parser,
+                storage=self.iaf_storage,
+                label="IceAndField"
+            )
 
         chap_url = config.get("chaparral_feed")
-        if chap_url: await self.sync_chaparral(chap_url)
+        if chap_url:
+            await self._sync_daysmart_feed(
+                base_url=chap_url,
+                company_name="chaparralice",
+                target_codes=["13", "9", "12", "6"],
+                parser=self.chap_parser,
+                storage=self.chap_storage,
+                label="Chaparral"
+            )
 
         pond_url = config.get("pond_feed")
         if pond_url: await self.sync_pond(pond_url)
 
         print("✨ All aggregation pipelines finished successfully.")
 
-    async def sync_iceandfield(self, base_url: str):
+    # 👉 Consolidated Private DaySmart API Fetching Pipeline (DRY)
+    async def _sync_daysmart_feed(self, base_url: str, company_name: str, target_codes: list, parser, storage, label: str):
         custom_timeout = httpx.Timeout(timeout=10.0, read=30.0)
         async with httpx.AsyncClient(timeout=custom_timeout) as client:
             now = datetime.now()
-            # 👉 Reduced API extraction range to 14 days
             end_date = now + timedelta(days=14)
 
             start_str = now.strftime("%Y-%m-%d 00:00:00")
             end_str = end_date.strftime("%Y-%m-%d 23:59:59")
 
-            print(f"🔄 IceAndField: Processing schedule from {start_str} to {end_str}")
+            print(f"🔄 {label}: Processing schedule from {start_str} to {end_str}")
 
             base_params = {
                 "cache[save]": "false", "page[size]": "100", "sort": "start",
-                "company": "iceandfield", "filter[start__gte]": start_str,
+                "company": company_name, "filter[start__gte]": start_str,
                 "filter[start__lte]": end_str, "include": "eventType,summary,resource.facility"
             }
 
-            target_codes = ["10", "12", "15", "16", "17", "22"]
             for index, code in enumerate(target_codes):
                 base_params[f"filter[or][{index}][eventType.code]"] = code
 
@@ -75,96 +90,24 @@ class SyncManager:
                         else:
                             break
                     except httpx.ReadTimeout:
-                        print(f"   ⚠️ Page {current_page} timed out. Retrying (attempt {attempt + 1}/3)...")
+                        print(f"   ⚠️ {label} Page {current_page} timed out. Retrying (attempt {attempt + 1}/3)...")
                         await asyncio.sleep(2)
                     except Exception as e:
-                        print(f"   ⚠️ Request error on page {current_page}: {e}")
+                        print(f"   ⚠️ Request error on {label} page {current_page}: {e}")
                         await asyncio.sleep(2)
 
                 if not response or response.status_code != 200:
-                    print(f"❌ Failed to fetch page {current_page}. Stopping sequence.")
+                    print(f"❌ Failed to fetch {label} page {current_page}. Stopping sequence.")
                     break
 
                 payload = response.json()
-                data_list = payload.get("data", [])
+                if not payload.get("data", []): break
 
-                if not data_list: break
-
-                flat_records = self.iaf_parser.parse_page_payload(payload)
+                flat_records = parser.parse_page_payload(payload)
 
                 if flat_records:
-                    self.iaf_storage.save_flat_records(flat_records)
-                    print(f"   ✅ Saved {len(flat_records)} sessions from Page {current_page}")
-
-                meta = payload.get("meta", {})
-                last_page = meta.get("page", {}).get("last-page", 1)
-
-                if current_page >= last_page:
-                    has_more_pages = False
-                else:
-                    current_page += 1
-                    await asyncio.sleep(1)
-
-    async def sync_chaparral(self, base_url: str):
-        custom_timeout = httpx.Timeout(timeout=10.0, read=30.0)
-        async with httpx.AsyncClient(timeout=custom_timeout) as client:
-            now = datetime.now()
-            # 👉 Reduced API extraction range to 14 days
-            end_date = now + timedelta(days=14)
-
-            start_str = now.strftime("%Y-%m-%d 00:00:00")
-            end_str = end_date.strftime("%Y-%m-%d 23:59:59")
-
-            print(f"🔄 Chaparral: Processing schedule from {start_str} to {end_str}")
-
-            base_params = {
-                "cache[save]": "false", "page[size]": "100", "sort": "start",
-                "company": "chaparralice", "filter[start__gte]": start_str,
-                "filter[start__lte]": end_str, "include": "eventType,summary,resource.facility"
-            }
-
-            chap_codes = ["13", "9", "12", "6"]
-            for index, code in enumerate(chap_codes):
-                base_params[f"filter[or][{index}][eventType.code]"] = code
-
-            current_page = 1
-            has_more_pages = True
-
-            while has_more_pages:
-                params = base_params.copy()
-                params["page[number]"] = str(current_page)
-
-                response = None
-                for attempt in range(3):
-                    try:
-                        response = await client.get(base_url, params=params)
-                        if response.status_code == 200:
-                            break
-                        elif response.status_code == 429:
-                            await asyncio.sleep(2)
-                        else:
-                            break
-                    except httpx.ReadTimeout:
-                        print(f"   ⚠️ Page {current_page} timed out. Retrying (attempt {attempt + 1}/3)...")
-                        await asyncio.sleep(2)
-                    except Exception as e:
-                        print(f"   ⚠️ Request error on page {current_page}: {e}")
-                        await asyncio.sleep(2)
-
-                if not response or response.status_code != 200:
-                    print(f"❌ Failed to fetch page {current_page}. Stopping sequence.")
-                    break
-
-                payload = response.json()
-                data_list = payload.get("data", [])
-
-                if not data_list: break
-
-                flat_records = self.chap_parser.parse_page_payload(payload)
-
-                if flat_records:
-                    self.chap_storage.save_flat_records(flat_records)
-                    print(f"   ✅ Chaparral: Saved {len(flat_records)} sessions from Page {current_page}")
+                    storage.save_flat_records(flat_records)
+                    print(f"   ✅ {label}: Saved {len(flat_records)} sessions from Page {current_page}")
 
                 meta = payload.get("meta", {})
                 last_page = meta.get("page", {}).get("last-page", 1)
@@ -178,7 +121,6 @@ class SyncManager:
     async def sync_pond(self, base_url: str):
         custom_timeout = httpx.Timeout(timeout=10.0, read=30.0)
         async with httpx.AsyncClient(timeout=custom_timeout, follow_redirects=True) as client:
-
             cb_html = int(datetime.now().timestamp())
             busted_base_url = f"{base_url}?_cb={cb_html}"
 
@@ -186,10 +128,8 @@ class SyncManager:
             try:
                 response = await client.get(busted_base_url)
 
-                # ABORT OPERATION IF COLLECTION FAILS (Protects DB from being wiped)
                 if response.status_code != 200:
-                    print(
-                        f"❌ Error fetching Pond HTML: {response.status_code}. Aborting sync to preserve existing DB records.")
+                    print(f"❌ Error fetching Pond HTML: {response.status_code}. Aborting sync to preserve records.")
                     return
 
                 current_year = datetime.now().year
@@ -201,18 +141,16 @@ class SyncManager:
 
                 print(f"   🔄 Pond: Fetching capacity JSON for {len(flat_records)} sessions...")
 
-                # --- 1. PRE-FETCH EXISTING DB DATA FOR FALLBACK PROTECTION ---
                 existing_data = {}
                 try:
                     with sqlite3.connect(self.pond_storage.db_path) as conn:
                         conn.row_factory = sqlite3.Row
                         cur = conn.execute("SELECT * FROM pond_sessions_v3")
                         for row in cur.fetchall():
-                            # Create a unique match key
                             key = f"{row['start_time']}_{row['resource_name']}"
                             existing_data[key] = dict(row)
                 except sqlite3.OperationalError:
-                    pass  # Table likely hasn't been created yet
+                    pass
 
                 for record in flat_records:
                     event_url = record.get("event_url")
@@ -243,7 +181,6 @@ class SyncManager:
 
                         if not fetched:
                             print(f"   ⚠️ Could not fetch capacity data for {json_url}")
-                            # --- 2. RESTORE FALLBACK DATA ON FETCH FAILURE ---
                             key = f"{record['start_time']}_{record['resource_name']}"
                             if key in existing_data:
                                 ext = existing_data[key]
