@@ -61,14 +61,12 @@
 
         header { padding: 2rem 1rem 1rem; max-width: 1200px; margin: 0 auto; }
 
-        /* Desktop Branding Margins */
         .branding { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 1.5rem; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 1rem; }
         .branding h1 { font-size: 2.25rem; font-weight: 700; letter-spacing: 0.05em; margin: 0; text-transform: uppercase; color: var(--text-main); }
 
         .branding .motto { font-size: 1rem; font-weight: 500; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.15em; margin-bottom: 0.3rem; display: flex; align-items: center; gap: 0.5rem; }
         .motto-dot { color: var(--text-muted); }
 
-        /* Desktop Filter Margins */
         .filter-container {
             display: flex;
             flex-wrap: wrap;
@@ -96,7 +94,6 @@
 
         main { max-width: 1200px; margin: 0 auto; padding: 0 1rem; }
 
-        /* Accordion Structural Wrapper */
         .date-accordion-block { margin-bottom: 0.75rem; border: 1px solid var(--border); border-radius: 6px; overflow: hidden; }
 
         .date-accordion-trigger {
@@ -178,8 +175,8 @@
                 align-items: center;
                 gap: 0.5rem;
                 border-bottom: none;
-                padding-bottom: 0;   /* Removes desktop border padding */
-                margin-bottom: 1rem; /* Sets a clean 1rem gap before the filters */
+                padding-bottom: 0;
+                margin-bottom: 1rem;
             }
             .branding h1 { font-size: 2rem; text-align: center; margin: 0; }
 
@@ -187,7 +184,7 @@
                 flex-direction: column;
                 font-size: 0.85rem;
                 text-align: center;
-                margin-bottom: 0;    /* Removes stacked motto margin */
+                margin-bottom: 0;
                 gap: 0.25rem;
             }
             .motto-dot { display: none; }
@@ -197,7 +194,7 @@
                 grid-template-columns: repeat(2, 1fr);
                 gap: 0.5rem;
                 width: 100%;
-                margin-bottom: 1rem; /* Matches the 1rem gap before the table blocks */
+                margin-bottom: 1rem;
             }
             .filter-btn {
                 width: 100%;
@@ -211,24 +208,11 @@
                 display: grid;
                 grid-template-columns: 1fr auto;
                 grid-gap: 0.75rem;
-                padding: 1.25rem 2.2rem 1.25rem 1rem;
+                padding: 1.25rem 1rem; /* 👉 Padding right restored back to neat symmetric 1rem */
                 border-bottom: 1px solid var(--border);
                 background-color: transparent;
-                position: relative;
             }
             .zambot-table tbody tr:last-child { border-bottom: none; }
-
-            .zambot-table tbody tr::after {
-                content: "›";
-                position: absolute;
-                right: 0.9rem;
-                top: 40%;
-                transform: translateY(-50%);
-                color: var(--text-muted);
-                font-size: 1.6rem;
-                font-weight: 500;
-                pointer-events: none;
-            }
 
             .zambot-table tbody tr:nth-child(even) { background-color: rgba(255, 255, 255, 0.01); }
 
@@ -365,13 +349,9 @@
                 const isGoaliesFull = goalieCap > 0 && goalieOpen <= 0;
 
                 let isSpotsFull = false;
-                if (skaterCap > 0 && goalieCap > 0) {
-                    isSpotsFull = isSkatersFull && isGoaliesFull;
-                } else if (skaterCap > 0) {
-                    isSpotsFull = isSkatersFull;
-                } else if (goalieCap > 0) {
-                    isSpotsFull = isGoaliesFull;
-                }
+                if (skaterCap > 0 && goalieCap > 0) isSpotsFull = isSkatersFull && isGoaliesFull;
+                else if (skaterCap > 0) isSpotsFull = isSkatersFull;
+                else if (goalieCap > 0) isSpotsFull = isGoaliesFull;
 
                 const isEndTimePassed = endTime > 0 && nowTime > endTime;
                 const isClosedFeed = feedStatus === 'closed';
@@ -512,7 +492,7 @@
         window.addEventListener('DOMContentLoaded', () => {
             fetchSessions(true);
             setInterval(renderAgenda, 30000);
-            setInterval(() => { fetchSessions(false); }, 30000); // Poll cache every 30s
+            setInterval(() => { fetchSessions(false); }, 30000);
         });
     </script>
 </body>
