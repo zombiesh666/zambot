@@ -71,7 +71,7 @@
         .filter-container {
             display: flex;
             flex-wrap: wrap;
-            justify-content: flex-start; /* 👉 Changed from center to flex-start */
+            justify-content: flex-start;
             gap: 0.5rem;
             margin-bottom: 1.5rem;
         }
@@ -131,13 +131,24 @@
         .table-wrapper { width: 100%; }
         .zambot-table { width: 100%; border-collapse: collapse; text-align: left; font-size: 1rem; white-space: nowrap; }
 
-        .zambot-table tbody tr { cursor: pointer; transition: background-color 0.15s ease; }
+        .zambot-table tbody tr {
+            cursor: pointer;
+            transition: background-color 0.15s ease, transform 0.1s ease;
+            -webkit-tap-highlight-color: transparent; /* Option 4: Remove sticky webkit mobile tap box overlay */
+        }
         .zambot-table td { padding: 1.15rem 1rem; border-bottom: 1px solid rgba(255,255,255,0.05); vertical-align: middle; }
 
         .zambot-table tbody tr:nth-child(even) { background-color: var(--bg-row-alt); }
         .zambot-table tbody tr:hover { background-color: var(--bg-row-hover); }
 
-        .col-type { font-weight: 500; color: var(--text-main); font-size: 1.1rem; }
+        /* Option 4: Immediate physical button compression feedback on click/touch */
+        .zambot-table tbody tr:active {
+            transform: scale(0.992);
+            background-color: rgba(255, 255, 255, 0.08) !important;
+        }
+
+        /* 👉 Option 3: Color Cue applied to the primary classification title text */
+        .col-type { font-weight: 600; color: var(--primary); font-size: 1.1rem; }
         .type-icon { display: inline-block; margin-right: 6px; font-size: 1.2em; }
 
         .col-rink { color: var(--text-muted); }
@@ -194,11 +205,25 @@
                 display: grid;
                 grid-template-columns: 1fr auto;
                 grid-gap: 0.75rem;
-                padding: 1.25rem 1rem;
+                padding: 1.25rem 2.2rem 1.25rem 1rem; /* Padding right increased slightly to secure space for arrow placement */
                 border-bottom: 1px solid var(--border);
                 background-color: transparent;
+                position: relative;                   /* Necessary anchor context for absolute positioning */
             }
             .zambot-table tbody tr:last-child { border-bottom: none; }
+
+            /* Option 1: Inject disclosure chevron pointing right on mobile device sessions */
+            .zambot-table tbody tr::after {
+                content: "›";
+                position: absolute;
+                right: 0.9rem;
+                top: 40%;
+                transform: translateY(-50%);
+                color: var(--text-muted);
+                font-size: 1.6rem;
+                font-weight: 500;
+                pointer-events: none;
+            }
 
             .zambot-table tbody tr:nth-child(even) { background-color: rgba(255, 255, 255, 0.01); }
 
@@ -209,13 +234,13 @@
 
             .zambot-table td { padding: 0; border: none; display: flex; align-items: center; white-space: normal; background-color: transparent !important; }
 
-            .zambot-table td.col-type { grid-column: 1 / 2; grid-row: 1; font-size: 1.2rem; }
+            .zambot-table td.col-type { grid-column: 1 / 2; grid-row: 1; font-size: 1.2rem; padding-right: 0.5rem; }
             .zambot-table td.col-status { grid-column: 2 / 3; grid-row: 1; justify-content: flex-end; }
 
             .zambot-table td.col-rink { grid-column: 1 / 3; grid-row: 2; font-size: 1rem; }
             .zambot-table td.col-resource { grid-column: 1 / 3; grid-row: 3; }
 
-            .zambot-table td.col-time { grid-column: 1 / 3; grid-row: 4; font-size: 1.1rem; color: var(--text-main); margin-top: 0.5rem; }
+            .zambot-table td.col-time { grid-column: 1 / 3; grid-row: 4; font-size: 1.1rem; margin-top: 0.5rem; }
 
             .zambot-table td.col-capacity { grid-column: 1 / 3; grid-row: 5; flex-direction: column; align-items: flex-start; margin-top: 0.5rem; border-top: 1px solid var(--border); padding-top: 0.75rem; }
 
@@ -236,7 +261,6 @@
             </div>
         </div>
 
-        <!-- Event Type Interactive Ribbon -->
         <div class="filter-container">
             <button class="filter-btn active" onclick="applyTypeFilter('all', this)">All Ice</button>
             <button class="filter-btn" onclick="applyTypeFilter('dropin', this)">🚨 Drop-In</button>
