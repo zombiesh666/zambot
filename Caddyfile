@@ -1,17 +1,18 @@
-# 👉 1. Explicitly catch all unencrypted HTTP traffic
+# Explicitly catch all unencrypted HTTP traffic
 http://zambot.live {
-    # Perform the permanent secure redirect
     redir https://zambot.live{uri} permanent
-    
-    # Completely drop logging for this block so it never touches access.log
     log_skip
 }
 
-# 👉 2. Your production secure HTTPS block
+# Production secure HTTPS block
 zambot.live {
-    # Standard log configuration (only captures secure traffic)
+    # 👉 Optimized log configuration with automatic rotation
     log {
-        output file /var/log/caddy/access.log
+        output file /var/log/caddy/access.log {
+            roll_size 10mb    # Roll/rotate the log file when it hits 10 MB
+            roll_keep 3       # Keep a maximum of 3 rotated backup files
+            roll_keep_days 7  # Retain rotated logs for a maximum of 7 days
+        }
         format json
     }
 
